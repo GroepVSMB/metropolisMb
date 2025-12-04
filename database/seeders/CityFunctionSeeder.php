@@ -1,25 +1,61 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace Database\Seeders;
 
-return new class extends Migration
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
+
+class CityFunctionSeeder extends Seeder
 {
-    public function up(): void
+    public function run(): void
     {
-        Schema::create('city_functions', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');       // e.g. "Sociale Huur tabel"
-            $table->string('category');   // e.g. "Wonen", "Groen"
-            $table->string('color_hex');  // Specific house-style color
-            $table->string('text_color')->default('#ffffff'); // Contrast text color
-            $table->timestamps();
-        });
-    }
+        // Clears old data to prevent duplicates when re-seeding
+        DB::table('city_functions')->truncate();
 
-    public function down(): void
-    {
-        Schema::dropIfExists('city_functions');
+        DB::table('city_functions')->insert([
+            [
+                'name' => 'Sociale Huur',
+                'category' => 'Wonen',
+                'color_hex' => '#89CFF0', // Sky Blue
+                'text_color' => '#333333',
+                'created_at' => now(), 'updated_at' => now()
+            ],
+            [
+                'name' => 'Luxe Flat',
+                'category' => 'Wonen',
+                'color_hex' => '#1f4e79', // Metro Blue
+                'text_color' => '#ffffff',
+                'created_at' => now(), 'updated_at' => now()
+            ],
+            [
+                'name' => 'Stadspark',
+                'category' => 'Groen',
+                'color_hex' => '#448a28', // Metro Green
+                'text_color' => '#ffffff',
+                'created_at' => now(), 'updated_at' => now()
+            ],
+            [
+                'name' => 'Industrie',
+                'category' => 'Werken',
+                'color_hex' => '#666666', // Metro Grey
+                'text_color' => '#ffffff',
+                'created_at' => now(), 'updated_at' => now()
+            ],
+            [
+                'name' => 'Winkel',
+                'category' => 'Dienst',
+                'color_hex' => '#d6aeb4', // Metro Pink
+                'text_color' => '#333333',
+                'created_at' => now(), 'updated_at' => now()
+            ],
+            [
+                'name' => 'Politiebureau',
+                'category' => 'Veiligheid',
+                'color_hex' => '#be1e2d', // Metro Red
+                'text_color' => '#ffffff',
+                'created_at' => now(), 'updated_at' => now()
+            ]
+        ]);
     }
-};
+}
