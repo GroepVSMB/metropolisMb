@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Models\Category;
 
 return new class extends Migration
 {
@@ -10,10 +11,13 @@ return new class extends Migration
     {
         Schema::create('city_functions', function (Blueprint $table) {
             $table->id();
-            $table->string('name');       // e.g. "Sociale Huur tabel"
-            $table->string('category');   // e.g. "Wonen", "Groen"
-            $table->string('color_hex');  // Specific house-style color
-            $table->string('text_color')->default('#ffffff'); // Contrast text color
+            $table->string('name'); 
+            
+            // Correct way: Just put the line here. REMOVE ->after('name')
+            $table->string('image')->nullable(); 
+
+            $table->foreignIdFor(Category::class)->constrained()->cascadeOnDelete();
+            $table->integer('livability_number');
             $table->timestamps();
         });
     }
