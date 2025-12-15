@@ -1,0 +1,1 @@
+<img src="{{ asset('Images/logo.png') }}" alt="Metropolis Logo" {{ $attributes }}>
