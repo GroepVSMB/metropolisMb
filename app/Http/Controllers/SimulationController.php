@@ -9,19 +9,33 @@ use Illuminate\View\View;
 
 class SimulationController extends Controller
 {
-    public function index(): View
+    public function index()
     {
-        $functions = CityFunction::all();
-        return view('simulation.dashboard', compact('functions'));
+        // 1. Fetch data
+        $functions = CityFunction::with('category')->get()->sortBy('category.name');
+
+        // 2. Prepare JavaScript Data
+        $jsFunctionsData = $functions->map(function($f) {
+            return [
+                'id' => $f->id,
+                'name' => $f->name,
+                'category' => $f->category->name ?? 'Onbekend',
+                'color_hex' => $f->category->color_hex ?? '#cccccc',
+                'livability' => $f->livability_number,
+                'image' => $f->image,
+            ];
+        })->values();
+
+        // 3. Prepare HTML List Data
+        $groupedFunctions = $functions->groupBy(fn($f) => $f->category->name ?? 'Overig');
+
+        // 4. Send to the SIMULATION view (This was 'library.index' before)
+        return view('simulation.dashboard', compact('jsFunctionsData', 'groupedFunctions'));
     }
 
-    // READ (List all saved layouts)
-    public function list()
-    {
-        return response()->json(Simulation::orderBy('created_at', 'desc')->get());
-    }
+    // ... keep your other methods (list, store, etc.) as they were ...
+    public function list() { return response()->json(Simulation::orderBy('created_at', 'desc')->get()); }
 
-    // CREATE (Save a new layout)
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -34,20 +48,15 @@ class SimulationController extends Controller
             'grid_state' => $validated['gridState']
         ]);
 
-        return response()->json([
-            'message' => 'Opgeslagen!',
-            'simulation' => $simulation
-        ]);
+        return response()->json(['message' => 'Opgeslagen!', 'simulation' => $simulation]);
     }
 
-    // READ (Load a specific layout)
     public function show($id)
     {
         $simulation = Simulation::findOrFail($id);
         return response()->json(['gridState' => $simulation->grid_state]);
     }
 
-    // DELETE
     public function destroy($id)
     {
         Simulation::destroy($id);

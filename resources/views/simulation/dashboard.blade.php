@@ -1,29 +1,13 @@
 <x-app-layout>
-    {{-- 1. PHP Logica --}}
-    @php
-        $jsFunctionsData = $functions->map(function($f) {
-            return [
-                'id' => $f->id,
-                'name' => $f->name,
-                'category' => $f->category->name ?? 'Onbekend',
-                'color_hex' => $f->category->color_hex ?? '#cccccc',
-                'livability' => $f->livability_number,
-                'image' => $f->image,
-            ];
-        });
 
-        $groupedFunctions = $functions->groupBy(fn($f) => $f->category->name ?? 'Overig');
-    @endphp
-
-    {{-- 2. Styling --}}
     <style>
         .simulation-container { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
+
         /* Custom scrollbar voor de functielijst */
         .scroller::-webkit-scrollbar { width: 6px; }
         .scroller::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
         .scroller::-webkit-scrollbar-track { background-color: #f1f5f9; }
-        
+
         .dragging { opacity: 0.5; }
         .drag-over { border-color: #be1e2d !important; border-width: 2px !important; transform: scale(1.02); }
     </style>
@@ -38,7 +22,7 @@
     {{-- 3. Main Content --}}
     <div class="py-12 simulation-container">
         <div class="max-w-[1600px] mx-auto sm:px-6 lg:px-8">
-            
+
             <div class="flex flex-col lg:flex-row gap-6 items-start">
 
                 {{-- KOLOM 1: Sidebar Links (Nu in een mooie witte kaart) --}}
@@ -46,7 +30,7 @@
                     <h2 class="text-metro-darkred text-lg font-bold border-b-2 border-gray-100 pb-2 mb-4">
                         Beschikbare Functies
                     </h2>
-                    
+
                     {{-- De Scroller zit nu IN de kaart --}}
                     <div class="overflow-y-auto scroller flex-1 pr-2">
                         <div class="space-y-6">
@@ -58,13 +42,13 @@
                                             <li draggable="true"
                                                 ondragstart="drag(event, {{ $function->id }})"
                                                 class="group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none">
-                                                
+
                                                 @if($function->image)
                                                     <img src="{{ $function->image }}" class="w-10 h-10 rounded mr-3 object-cover border border-gray-200">
                                                 @else
                                                     <span class="w-10 h-10 rounded mr-3 bg-gray-200 block"></span>
                                                 @endif
-                                                
+
                                                 <span class="font-medium text-gray-700 text-sm group-hover:text-metro-darkred">{{ $function->name }}</span>
                                                 <svg class="w-4 h-4 ml-auto text-gray-300 group-hover:text-metro-darkred" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                                             </li>
@@ -81,7 +65,7 @@
                     <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200">
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
-                                <div 
+                                <div
                                      id="cell-{{ $i }}"
                                      onclick="handleCellClick({{ $i }})"
                                      ondrop="drop(event, {{ $i }})"
@@ -128,7 +112,7 @@
             ...dbFunctions
         ];
 
-        let gridState = Array(12).fill(0); 
+        let gridState = Array(12).fill(0);
 
         function allowDrop(ev) { ev.preventDefault(); }
 
@@ -140,7 +124,7 @@
 
         function drop(ev, cellIndex) {
             ev.preventDefault();
-            leaveDrag(cellIndex); 
+            leaveDrag(cellIndex);
             const funcIndex = ev.dataTransfer.getData("funcIndex");
             if (funcIndex !== "") applyFunctionToCell(cellIndex, parseInt(funcIndex));
         }
@@ -149,7 +133,7 @@
         function leaveDrag(index) { document.getElementById(`cell-${index}`).classList.remove('drag-over'); }
 
         function handleCellClick(index) {
-            if (gridState[index] !== 0) applyFunctionToCell(index, 0); 
+            if (gridState[index] !== 0) applyFunctionToCell(index, 0);
         }
 
         function applyFunctionToCell(cellIndex, funcIndex) {
@@ -178,7 +162,7 @@
                     const img = document.createElement('img');
                     img.src = func.image;
                     img.className = 'w-full h-full object-cover absolute top-0 left-0';
-                    img.style.pointerEvents = 'none'; 
+                    img.style.pointerEvents = 'none';
                     cell.appendChild(img);
                 }
 
@@ -186,11 +170,11 @@
                 const span = document.createElement('span');
                 span.className = 'font-bold text-[0.7rem] lg:text-sm leading-tight relative z-10 drop-shadow-md bg-white/90 px-2 py-0.5 rounded mt-auto mb-1';
                 span.innerText = func.name;
-                
+
                 // Kleine stijl aanpassing voor leesbaarheid
                 span.style.borderBottom = `3px solid ${func.color_hex}`;
-                span.style.color = "#333"; 
-                
+                span.style.color = "#333";
+
                 cell.appendChild(span);
             }
         }

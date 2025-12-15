@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\UserRole;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,20 +14,25 @@ class RoleMiddleware
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-   public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string $role): Response
     {
-        // checks if the user is authenticated/logged in
         if (! $request->user()) {
             return redirect('/login');
         }
 
-        // Does the user have the required role?
-        if ($request->user()->role !== $role) {
-            //Error is no access
-            abort(403, 'Je hebt geen toegang tot deze pagina.');
+        $userRole = $request->user()->role;
+
+        // 1. If the role is an Enum Object, extract the string value
+        if ($userRole instanceof \BackedEnum) {
+            $userRole = $userRole->value;
         }
 
-        // continue if everything is ok
+        // 2. Perform the comparison (String vs String)
+        // We use strtolower just to be safe against case sensitivity (Planner vs planner)
+        if (strtolower($userRole) !== strtolower($role)) {
+            abort(403, "Je hebt geen toegang tot deze pagina. Jij hebt niet de role: $role");
+        }
+
         return $next($request);
     }
 }

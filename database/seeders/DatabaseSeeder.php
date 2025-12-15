@@ -6,7 +6,8 @@ use App\Models\CityFunction;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash; 
+use Illuminate\Support\Facades\Hash;
+use App\Enums\UserRole;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,7 +22,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'De Manager',
             'email' => 'manager@test.com',
-            'role' => 'manager',
+            'role' => UserRole::MANAGER,
             'password' => Hash::make('wachtwoord'),
         ]);
 
@@ -29,10 +30,17 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'De Planner',
             'email' => 'planner@test.com',
-            'role' => 'planner',
+            'role' => UserRole::PLANNER,
             'password' => Hash::make('wachtwoord'),
             ]);
-        // User::factory(10)->create();
+
+        User::factory()->create([
+            'name' => 'De Admin',
+            'email' => 'admin@test.com',
+            'role' => UserRole::ADMIN,
+            'password' => Hash::make('wachtwoord'),
+        ]);
+
         $this->call([
             CategorySeeder::class,
             CityFunctionSeeder::class

@@ -1,65 +1,61 @@
 <?php
 
+use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SimulationController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Middleware\RoleMiddleware;
-use App\Models\CityFunction;
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
-// 1. Homepage stuurt direct door naar login
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+// 1. Homepage Redirect (Cleaner syntax)
+Route::redirect('/', '/login');
 
-// 2. De standaard Dashboard, Simulation en Library routes
-// We groeperen ze zodat ze allemaal beveiligd zijn met 'auth' en 'verified'
+// 2. Authenticated Routes (Dashboard & Simulation)
 Route::middleware(['auth', 'verified'])->group(function () {
-    
-    // Dashboard
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
 
-  // 1. IEDEREEN (Planner & Manager) mag de lijst ZIEN
-    Route::get('/library', function () {
-        // We halen alle functies op, gesorteerd op categorie
-        $functions = CityFunction::with('category')->get()->sortBy('category.name');
-        return view('library.index', compact('functions'));
-    })->name('library.index');
+    // Use Route::view for pages that don't need logic
+    Route::view('/dashboard', 'dashboard')->name('dashboard');
 
+    // Library Read-Only (Everyone)
+    Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
 });
 
-    // 2. ALLEEN MANAGER mag functies toevoegen, bewerken of verwijderen
-    Route::middleware(['auth', 'role:manager'])->group(function () {
-    
-    // Voorbeeld routes voor CRUD (Create, Update, Delete)
-    Route::get('/library/create', function() { return "Pagina om toe te voegen"; })->name('library.create');
-    Route::post('/library', function() { /* opslaan logica */ })->name('library.store');
-    Route::delete('/library/{id}', function($id) { 
-        CityFunction::destroy($id); 
-        return back(); 
-    })->name('library.destroy');
+// 3. Manager Routes (CRUD & Dashboard)
+Route::middleware(['auth', 'verified', 'role:manager'])->group(function () {
+
+    Route::get('/manager/dashboard', function () {
+        return view('dashboard'); // Or use a controller if you have one
+    })->name('manager.dashboard');
+    // The Manager's Table View
+    Route::get('/library/manage', [LibraryController::class, 'manage'])->name('library.manage');
+
+    // Create
+    Route::get('/library/create', [LibraryController::class, 'create'])->name('library.create');
+    Route::post('/library', [LibraryController::class, 'store'])->name('library.store');
+
+    // Edit
+    Route::get('/library/{id}/edit', [LibraryController::class, 'edit'])->name('library.edit');
+    Route::put('/library/{id}', [LibraryController::class, 'update'])->name('library.update');
+
+    // Delete
+    Route::delete('/library/{id}', [LibraryController::class, 'destroy'])->name('library.destroy');
 });
 
-// 3. Profiel beheer routes (standaard Breeze)
+// 4. Planner Routes
+Route::middleware(['auth', 'role:planner'])->group(function () {
+    // If you haven't created PlannerController yet, change this back to a closure.
+    Route::get('/simulation', [SimulationController::class, 'index'])->name('simulation.dashboard');
+});
+
+// 5. Profile Routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-
-// 4. Specifieke Manager routes (beveiligd met jouw RoleMiddleware)
-Route::middleware(['auth', 'role:manager'])->group(function () {
-    Route::get('/manager/dashboard', function () {
-        return "Dit is het Manager Dashboard (alleen voor managers)";
-    })->name('manager.dashboard');
-});
-
-// 5. Specifieke Planner routes (beveiligd met jouw RoleMiddleware)
-Route::middleware(['auth', 'role:planner'])->group(function () {
-    Route::get('/planner/agenda', function () {
-        return "Dit is de Planner Agenda (alleen voor planners)";
-    })->name('planner.agenda');
 });
 
 require __DIR__.'/auth.php';
