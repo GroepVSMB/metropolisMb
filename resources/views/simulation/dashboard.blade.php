@@ -6,19 +6,18 @@
         .scroller::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
         .scroller::-webkit-scrollbar-track { background-color: #f1f5f9; }
 
+        /* Dragging Styles */
         .dragging { opacity: 0.5; }
 
-        /* Valid Drop Target */
         .drag-over-valid {
-            border-color: #22c55e !important; /* Green */
+            border-color: #22c55e !important;
             background-color: #f0fdf4 !important;
             border-width: 2px !important;
             transform: scale(1.02);
         }
 
-        /* Invalid Drop Target (Conflict) */
         .drag-over-invalid {
-            border-color: #ef4444 !important; /* Red */
+            border-color: #ef4444 !important;
             background-color: #fef2f2 !important;
             border-width: 2px !important;
             transform: scale(1.02);
@@ -35,15 +34,18 @@
     <div class="py-12 simulation-container">
         <div class="max-w-[1600px] mx-auto sm:px-6 lg:px-8">
 
-            {{-- Error Message Toast (Hidden by default) --}}
-            <div id="error-toast" class="hidden fixed top-20 right-5 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50 transition-opacity duration-300">
-                <strong class="font-bold">Foutmelding!</strong>
-                <span class="block sm:inline" id="error-text">Er is iets misgegaan.</span>
+            {{-- 1. ERROR TOAST (Appears on failed drop) --}}
+            <div id="error-toast" class="hidden fixed top-20 right-5 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50 transition-opacity duration-300 flex items-center">
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    <strong class="font-bold">Niet toegestaan!</strong>
+                    <span class="block text-sm" id="error-text">Reden onbekend.</span>
+                </div>
             </div>
 
             <div class="flex flex-col lg:flex-row gap-6 items-start">
 
-                {{-- COLUMN 1: Sidebar --}}
+                {{-- COLUMN 1: Sidebar (Draggables) --}}
                 <aside class="w-full lg:w-1/4 min-w-[250px] bg-white overflow-hidden shadow-sm sm:rounded-lg p-4 h-[calc(100vh-200px)] flex flex-col">
                     <h2 class="text-metro-darkred text-lg font-bold border-b-2 border-gray-100 pb-2 mb-4">
                         Beschikbare Functies
@@ -76,10 +78,10 @@
                     </div>
                 </aside>
 
-                {{-- COLUMN 2: Grid --}}
-                <section class="w-full lg:w-2/4 flex flex-col items-center bg-white shadow-sm sm:rounded-lg p-6">
+                {{-- COLUMN 2: The Grid --}}
+                <section class="w-full lg:w-2/4 flex flex-col items-center bg-white shadow-sm sm:rounded-lg p-6 relative">
+
                     <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200">
-                        {{-- 4 Columns x 3 Rows = 12 Cells --}}
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
                                 <div
@@ -94,8 +96,13 @@
                             @endfor
                         </div>
                     </div>
-                    <p class="text-center text-xs text-gray-500 mt-4 italic">
-                        Sleep functies naar de kavels. <span class="text-red-500 font-bold">Let op: Sommige buren botsen!</span>
+
+                    {{-- 2. LIVE FEEDBACK BAR (New feature) --}}
+                    <div id="live-feedback" class="mt-4 w-full p-3 rounded text-sm font-bold text-center hidden">
+                    </div>
+
+                    <p class="text-center text-xs text-gray-500 mt-2 italic">
+                        Sleep functies naar de kavels. Let op de regels!
                     </p>
                 </section>
 
@@ -110,20 +117,18 @@
                     </article>
 
                     <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 text-sm text-gray-600">
-                        <h4 class="font-bold text-gray-800 mb-2">Actieve Regels:</h4>
-
-                        {{-- Dynamically list rules from DB --}}
+                        <h4 class="font-bold text-gray-800 mb-2 border-b pb-1">Actieve Regels:</h4>
                         @if(!empty($incompatibilityRules))
-                            <ul class="list-disc pl-4 space-y-1 text-xs">
+                            <ul class="list-disc pl-4 space-y-2 text-xs">
                                 @foreach($incompatibilityRules as $category => $enemies)
                                     <li>
-                                        <span class="font-bold text-blue-600">{{ $category }}</span> mag niet naast
-                                        <span class="font-bold text-red-600">{{ implode(', ', $enemies) }}</span>.
+                                        <span class="font-bold text-gray-700">{{ $category }}</span> botst met: <br>
+                                        <span class="text-red-500 font-semibold">{{ implode(', ', $enemies) }}</span>
                                     </li>
                                 @endforeach
                             </ul>
                         @else
-                            <p class="text-gray-400 italic text-xs">Geen regels ingesteld.</p>
+                            <p class="text-gray-400 italic text-xs">Geen regels gevonden.</p>
                         @endif
                     </div>
                 </aside>
@@ -132,11 +137,9 @@
         </div>
     </div>
 
-    {{-- 4. JavaScript Logic --}}
+    {{-- JAVASCRIPT LOGIC --}}
     <script>
         const dbFunctions = @json($jsFunctionsData);
-
-        // INJECT RULES FROM DATABASE HERE
         const incompatibilityRules = @json($incompatibilityRules ?? []);
 
         const availableFunctions = [
@@ -144,33 +147,29 @@
             ...dbFunctions
         ];
 
-        let gridState = Array(12).fill(0); // Holds the Index of availableFunctions
-        let currentDragIndex = null; // Which item are we dragging
+        let gridState = Array(12).fill(0);
+        let currentDragIndex = null;
 
-        // 1. Start Dragging
+        // 1. Start Drag
         function drag(ev, dbId) {
             const indexInArray = availableFunctions.findIndex(f => f.id === dbId);
             currentDragIndex = indexInArray;
-
             ev.dataTransfer.setData("funcIndex", indexInArray);
             ev.dataTransfer.effectAllowed = "copy";
         }
 
-        // 2. Check Adjacency
+        // 2. Logic Check
         function checkAdjacency(targetCellIndex, functionIndex) {
             const incomingFunc = availableFunctions[functionIndex];
             const incomingCat = incomingFunc.category;
 
-            // If category has no rules in DB, it's valid
             if (!incompatibilityRules[incomingCat]) return { valid: true };
 
-            const enemies = incompatibilityRules[incomingCat]; // Array of incompatible names
+            const enemies = incompatibilityRules[incomingCat];
             const neighbors = getNeighbors(targetCellIndex);
 
             for (let neighborIndex of neighbors) {
                 const neighborFuncIndex = gridState[neighborIndex];
-
-                // Skip empty cells
                 if (neighborFuncIndex === 0) continue;
 
                 const neighborFunc = availableFunctions[neighborFuncIndex];
@@ -179,63 +178,75 @@
                 if (enemies.includes(neighborCat)) {
                     return {
                         valid: false,
-                        message: `Conflict: "${incomingFunc.name}" (${incomingCat}) mag niet naast "${neighborFunc.name}" (${neighborCat}) staan!`
+                        // The message needed for the prompt:
+                        message: `CONFLICT: ${incomingCat} kan niet naast ${neighborCat}!`
                     };
                 }
             }
-
             return { valid: true };
         }
 
-        // Helper: Get Neighbor Indices
         function getNeighbors(i) {
             let neighbors = [];
             const col = i % 4;
-
             if (i >= 4) neighbors.push(i - 4); // North
             if (i < 8)  neighbors.push(i + 4); // South
             if (col > 0) neighbors.push(i - 1); // West
             if (col < 3) neighbors.push(i + 1); // East
-
             return neighbors;
         }
 
-        // 3. Hover Logic
+        // 3. Hover Feedback (Updated for Live Message)
         function allowDrop(ev, cellIndex) {
             ev.preventDefault();
             const cell = document.getElementById(`cell-${cellIndex}`);
+            const feedbackBar = document.getElementById('live-feedback');
 
-            // Dry-run check
             const check = checkAdjacency(cellIndex, currentDragIndex);
 
             if (check.valid) {
                 cell.classList.add('drag-over-valid');
                 cell.classList.remove('drag-over-invalid');
                 ev.dataTransfer.dropEffect = "copy";
+
+                // Hide feedback if valid
+                feedbackBar.classList.add('hidden');
+                feedbackBar.innerHTML = '';
             } else {
                 cell.classList.add('drag-over-invalid');
                 cell.classList.remove('drag-over-valid');
                 ev.dataTransfer.dropEffect = "none";
+
+                // SHOW FEEDBACK MESSAGE IMMEDIATELY
+                feedbackBar.innerHTML = `
+                    <div class="bg-red-100 text-red-700 border border-red-400 px-4 py-2 rounded flex items-center justify-center animate-pulse">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        ${check.message}
+                    </div>
+                `;
+                feedbackBar.classList.remove('hidden');
             }
         }
 
         function leaveDrag(index) {
             const cell = document.getElementById(`cell-${index}`);
             cell.classList.remove('drag-over-valid', 'drag-over-invalid');
+
+            // Clear feedback when leaving the cell
+            const feedbackBar = document.getElementById('live-feedback');
+            feedbackBar.classList.add('hidden');
         }
 
-        // 4. Drop Logic
+        // 4. Drop (Commit)
         function drop(ev, cellIndex) {
             ev.preventDefault();
-            leaveDrag(cellIndex);
+            leaveDrag(cellIndex); // Clears the styling
 
             const funcIndex = parseInt(ev.dataTransfer.getData("funcIndex"));
-
-            // Final Validation
             const check = checkAdjacency(cellIndex, funcIndex);
 
             if (!check.valid) {
-                showError(check.message);
+                showError(check.message); // Show the sticky Toast if they drop it anyway
                 return;
             }
 
@@ -296,7 +307,7 @@
             const toast = document.getElementById('error-toast');
             document.getElementById('error-text').innerText = msg;
             toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 4000);
+            setTimeout(() => toast.classList.add('hidden'), 5000);
         }
     </script>
 </x-app-layout>
