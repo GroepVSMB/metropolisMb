@@ -42,6 +42,11 @@
                                     class="border-transparent text-gray-500 hover:text-metro-darkred hover:border-metro-darkred focus:text-metro-darkred focus:border-metro-darkred {{ request()->routeIs('library.manage') ? '!border-metro-darkred !text-metro-darkred' : '' }}">
                             {{ __('Beheer Lijst') }}
                         </x-nav-link>
+
+                        <x-nav-link :href="route('adjacency.index')" :active="request()->routeIs('adjacency.index')"
+                                    class="border-transparent text-gray-500 hover:text-metro-darkred hover:border-metro-darkred focus:text-metro-darkred focus:border-metro-darkred {{ request()->routeIs('adjacency.index') ? '!border-metro-darkred !text-metro-darkred' : '' }}">
+                            {{ __('Beheer Regels') }}
+                        </x-nav-link>
                     @endif
 
                     {{-- PLANNER ONLY --}}
