@@ -14,4 +14,9 @@ class Category extends Model
     {
         return $this->hasMany(CityFunction::class);
     }
+
+    public function incompatibleCategories(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'category_incompatibilities', 'category_id', 'incompatible_category_id');
+    }
 }
