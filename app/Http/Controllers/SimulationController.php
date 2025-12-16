@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\CityFunction;
 use App\Models\Simulation;
 use Illuminate\Http\Request;
@@ -11,10 +12,26 @@ class SimulationController extends Controller
 {
     public function index()
     {
-        // 1. Fetch data
+// 1. Fetch Functions
         $functions = CityFunction::with('category')->get()->sortBy('category.name');
 
-        // 2. Prepare JavaScript Data
+        // 2. Fetch Rules from Database
+        // We get all categories and their incompatible friends
+        $categories = Category::with('incompatibleCategories')->get();
+
+        $incompatibilityRules = [];
+        foreach ($categories as $cat) {
+            // Create list of enemy names: ['Industrie', 'Heavy Industry']
+            $enemies = $cat->incompatibleCategories->pluck('name')->toArray();
+
+            if (!empty($enemies)) {
+                $incompatibilityRules[$cat->name] = $enemies;
+            }
+        }
+
+        // 3. Prepare Existing Data
+        $groupedFunctions = $functions->groupBy(fn($f) => $f->category->name ?? 'Overig');
+
         $jsFunctionsData = $functions->map(function($f) {
             return [
                 'id' => $f->id,
@@ -26,11 +43,8 @@ class SimulationController extends Controller
             ];
         })->values();
 
-        // 3. Prepare HTML List Data
-        $groupedFunctions = $functions->groupBy(fn($f) => $f->category->name ?? 'Overig');
-
-        // 4. Send to the SIMULATION view (This was 'library.index' before)
-        return view('simulation.dashboard', compact('jsFunctionsData', 'groupedFunctions'));
+        // 4. Pass the new $incompatibilityRules variable to the view
+        return view('simulation.dashboard', compact('groupedFunctions', 'jsFunctionsData', 'incompatibilityRules'));
     }
 
     // ... keep your other methods (list, store, etc.) as they were ...

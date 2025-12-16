@@ -45,5 +45,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             CityFunctionSeeder::class
         ]);
+
+        $this->call(CategoryIncompatibilitySeeder::class);
     }
 }
