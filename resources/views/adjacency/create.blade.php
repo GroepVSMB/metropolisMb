@@ -58,11 +58,6 @@
                         </select>
                     </div>
 
-                    {{-- Info / hint --}}
-                    <div class="mb-6 text-xs text-gray-500">
-                        Deze twee categorieën kunnen niet samen gebruikt worden.
-                    </div>
-
                     {{-- Acties --}}
                     <div class="flex items-center justify-between">
                         <button

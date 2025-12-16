@@ -162,24 +162,31 @@
         function checkAdjacency(targetCellIndex, functionIndex) {
             const incomingFunc = availableFunctions[functionIndex];
             const incomingCat = incomingFunc.category;
-
-            if (!incompatibilityRules[incomingCat]) return { valid: true };
-
-            const enemies = incompatibilityRules[incomingCat];
             const neighbors = getNeighbors(targetCellIndex);
 
             for (let neighborIndex of neighbors) {
+                // Get the neighbor on the grid
                 const neighborFuncIndex = gridState[neighborIndex];
-                if (neighborFuncIndex === 0) continue;
+                if (neighborFuncIndex === 0) continue; // Skip empty neighbors
 
                 const neighborFunc = availableFunctions[neighborFuncIndex];
                 const neighborCat = neighborFunc.category;
 
-                if (enemies.includes(neighborCat)) {
+                // CHECK 1: Does the INCOMING function hate the NEIGHBOR?
+                // (This is what you already had)
+                if (incompatibilityRules[incomingCat] && incompatibilityRules[incomingCat].includes(neighborCat)) {
                     return {
                         valid: false,
-                        // The message needed for the prompt:
-                        message: `CONFLICT: ${incomingCat} kan niet naast ${neighborCat}!`
+                        message: `CONFLICT: ${incomingCat} mag niet naast ${neighborCat}!`
+                    };
+                }
+
+                // CHECK 2: Does the NEIGHBOR hate the INCOMING function?
+                // (This is the missing part that fixes your issue)
+                if (incompatibilityRules[neighborCat] && incompatibilityRules[neighborCat].includes(incomingCat)) {
+                    return {
+                        valid: false,
+                        message: `CONFLICT: ${neighborCat} staat geen ${incomingCat} toe!`
                     };
                 }
             }

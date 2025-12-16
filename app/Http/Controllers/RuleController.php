@@ -25,11 +25,30 @@ class RuleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'category_id' => 'required|different:incompatible_category_id',
             'incompatible_category_id' => 'required',
+            'category_id' => [
+                'required',
+                'different:incompatible_category_id',
+                // Custom Closure Rule to check both directions (A+B and B+A)
+                function ($attribute, $value, $fail) use ($request) {
+                    $exists = CategoryIncompatibility::where(function ($query) use ($value, $request) {
+                        // Check standard direction: A -> B
+                        $query->where('category_id', $value)
+                            ->where('incompatible_category_id', $request->incompatible_category_id);
+                    })->orWhere(function ($query) use ($value, $request) {
+                        // Check reverse direction: B -> A
+                        $query->where('category_id', $request->incompatible_category_id)
+                            ->where('incompatible_category_id', $value);
+                    })->exists();
+
+                    if ($exists) {
+                        $fail('Deze combinatie (of de omgekeerde volgorde) bestaat al.');
+                    }
+                },
+            ],
         ],
         [
-            'category_id.different' => 'De geselecteerde categorie mag niet hetzelfde zijn als de incompatibele categorie.'
+            'category_id.different' => 'De geselecteerde categorie mag niet hetzelfde zijn als de incompatibele categorie.',
         ]);
 
         CategoryIncompatibility::create([
