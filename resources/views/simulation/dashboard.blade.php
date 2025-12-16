@@ -150,14 +150,53 @@
         let gridState = Array(12).fill(0);
         let currentDragIndex = null;
 
-        // 1. Start Drag
         function drag(ev, dbId) {
-            const indexInArray = availableFunctions.findIndex(f => f.id === dbId);
+            // 1. Get Data
+            const func = availableFunctions.find(f => f.id === dbId);
+            const indexInArray = availableFunctions.indexOf(func);
             currentDragIndex = indexInArray;
             ev.dataTransfer.setData("funcIndex", indexInArray);
             ev.dataTransfer.effectAllowed = "copy";
+
+            // 2. Configure the Ghost Element to match Grid Cell Size
+            const ghost = document.getElementById('drag-ghost');
+            const ghostImg = document.getElementById('ghost-img');
+            const ghostBlock = document.getElementById('ghost-color-block');
+            const ghostLabel = document.getElementById('ghost-label');
+
+            // GET REFERENCE SIZE FROM THE GRID
+            // We grab the size of the first cell so the drag image matches the grid exactly
+            const referenceCell = document.getElementById('cell-0');
+            const width = referenceCell.offsetWidth;
+            const height = referenceCell.offsetHeight;
+
+            // Apply dimensions to ghost
+            ghost.style.width = `${width}px`;
+            ghost.style.height = `${height}px`;
+
+            if (func) {
+                // Update Label to look like the Grid version (larger text, positioned at bottom)
+                ghostLabel.innerText = func.name;
+                ghostLabel.style.borderBottom = `3px solid ${func.color_hex}`;
+                
+                // Set Image vs Color
+                if (func.image) {
+                    ghostImg.src = func.image;
+                    ghostImg.classList.remove('hidden');
+                    ghostBlock.classList.add('hidden');
+                } else {
+                    ghostImg.classList.add('hidden');
+                    ghostBlock.classList.remove('hidden');
+                    ghostBlock.style.backgroundColor = func.color_hex || '#ccc';
+                }
+
+                // 3. Set Drag Image
+                // We set the offset to half width/height so the cursor is in the center of the big card
+                ev.dataTransfer.setDragImage(ghost, width / 2, height / 2);
+            }
         }
 
+    
         // 2. Logic Check
         function checkAdjacency(targetCellIndex, functionIndex) {
             const incomingFunc = availableFunctions[functionIndex];
@@ -317,4 +356,21 @@
             setTimeout(() => toast.classList.add('hidden'), 5000);
         }
     </script>
+
+    {{-- DRAG GHOST TEMPLATE (Dynamic Size) --}}
+    <div id="drag-ghost" class="fixed top-[-9999px] left-[-9999px] bg-white border border-gray-300 flex flex-col items-center shadow-lg rounded-sm overflow-hidden z-50">
+        
+        {{-- Image: Covers the whole background --}}
+        <img id="ghost-img" src="" class="absolute top-0 left-0 w-full h-full object-cover hidden">
+        
+        {{-- Color Block: Covers background if no image --}}
+        <div id="ghost-color-block" class="absolute top-0 left-0 w-full h-full hidden"></div>
+        
+        {{-- Label: Styled exactly like the grid items (Bottom centered, white background) --}}
+        <span id="ghost-label" 
+            class="font-bold text-sm leading-tight relative z-10 drop-shadow-md bg-white/90 px-2 py-0.5 rounded mt-auto mb-2 max-w-[90%] truncate text-center">
+            Label
+        </span>
+    </div>
+    
 </x-app-layout>
