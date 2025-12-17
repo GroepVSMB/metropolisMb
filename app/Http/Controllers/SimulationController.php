@@ -12,8 +12,16 @@ class SimulationController extends Controller
 {
     public function index()
     {
-// 1. Fetch Functions
-        $functions = CityFunction::with('category')->get()->sortBy('category.name');
+        // 1. Fetch Functions
+        $functions = CityFunction::with('category', 'acknowledgedByUsers')->get()->sortBy('category.name');
+
+        // Get current users info
+        $user = auth()->user();
+
+        // Check if it's new
+        $functions->each(function ($f) use ($user) {
+            $f->is_new = !$f->acknowledgedByUsers->contains($user->id);
+        });
 
         // 2. Fetch Rules from Database
         // We get all categories and their incompatible friends

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use App\Models\Category;
+use App\Models\User;
 
 class CityFunctionSeeder extends Seeder
 {
@@ -65,5 +66,19 @@ class CityFunctionSeeder extends Seeder
                 'created_at' => now(), 'updated_at' => now()
             ]
         ]);
+
+        $planner = User::where('role', 'planner')->first();
+        $allFunctions = DB::table('city_functions')->pluck('id');
+
+        // Let's mark only the first two functions as acknowledged for this planner
+        $acknowledgedFunctions = $allFunctions->take(2);
+
+        foreach ($acknowledgedFunctions as $functionId) {
+            DB::table('city_function_acknowledgements')->insert([
+                'user_id' => $planner->id,
+                'city_function_id' => $functionId,
+                'acknowledged_at' => now(),
+            ]);
+        }
     }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SimulationController;
+use App\Http\Controllers\CityFunctionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -49,6 +50,8 @@ Route::middleware(['auth', 'verified', 'role:manager'])->group(function () {
 Route::middleware(['auth', 'role:planner'])->group(function () {
     // If you haven't created PlannerController yet, change this back to a closure.
     Route::get('/simulation', [SimulationController::class, 'index'])->name('simulation.dashboard');
+
+        Route::post('/city-functions/{cityFunction}/acknowledge', [CityFunctionController::class, 'acknowledge']);
 });
 
 // 5. Profile Routes

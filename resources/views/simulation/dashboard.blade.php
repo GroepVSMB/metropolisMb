@@ -59,7 +59,8 @@
                                     <ul class="space-y-2">
                                         @foreach($catFunctions as $function)
                                             <li draggable="true"
-                                                ondragstart="drag(event, {{ $function->id }})"
+                                                    ondragstart="handleAcknowledge({{ $function->id }}); drag(event, {{ $function->id }})"
+                                                    onclick="handleAcknowledge({{ $function->id }})"
                                                 class="group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none">
 
                                                 @if($function->image)
@@ -68,7 +69,14 @@
                                                     <span class="w-10 h-10 rounded mr-3 bg-gray-200 block"></span>
                                                 @endif
 
-                                                <span class="font-medium text-gray-700 text-sm group-hover:text-metro-darkred">{{ $function->name }}</span>
+                                                <span class="font-medium text-gray-700 text-sm group-hover:text-metro-darkred">{{ $function->name }}
+                                                    @if($function->is_new)
+                                                    <span  id="new-badge-{{ $function->id }}"
+                                                           class="ml-2 px-2 py-0.5 text-xs font-bold rounded bg-green-500 text-white">
+                                                        New
+                                                    </span>
+                                                    @endif
+                                                </span>
                                             </li>
                                         @endforeach
                                     </ul>
@@ -139,6 +147,28 @@
 
     {{-- JAVASCRIPT LOGIC --}}
     <script>
+        const acknowledged = new Set();
+
+        function handleAcknowledge(functionId) {
+            if (acknowledged.has(functionId)) return;
+            acknowledged.add(functionId);
+
+            // Optimistically remove NEW badge
+            const badge = document.getElementById(`new-badge-${functionId}`);
+            if (badge) badge.remove();
+
+            // Call existing route
+            fetch(`/city-functions/${functionId}/acknowledge`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            }).catch((e) => {
+                console.log("Error: " + e)
+            });
+        }
+
         const dbFunctions = @json($jsFunctionsData);
         const incompatibilityRules = @json($incompatibilityRules ?? []);
 

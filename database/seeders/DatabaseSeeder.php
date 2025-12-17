@@ -6,6 +6,7 @@ use App\Models\CityFunction;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Enums\UserRole;
 
@@ -47,5 +48,24 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(CategoryIncompatibilitySeeder::class);
+
+        $planner = User::where('role', UserRole::PLANNER)->first();
+        $allFunctionIds = DB::table('city_functions')->pluck('id');
+
+        // For demonstration, acknowledge only the first 2 functions
+        $acknowledged = $allFunctionIds->take(2);
+
+        $now = now();
+        foreach ($acknowledged as $functionId) {
+            DB::table('city_function_acknowledgements')->updateOrInsert(
+                [
+                    'user_id' => $planner->id,
+                    'city_function_id' => $functionId,
+                ],
+                [
+                    'acknowledged_at' => $now,
+                ]
+            );
+        }
     }
 }

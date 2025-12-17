@@ -53,4 +53,14 @@ class User extends Authenticatable
     {
         return $this->role === $role;
     }
+
+    public function acknowledgedCityFunctions()
+    {
+        return $this->belongsToMany(
+            CityFunction::class,
+            'city_function_acknowledgements',
+            'user_id',
+            'city_function_id'
+        )->withPivot('acknowledged_at');
+    }
 }
