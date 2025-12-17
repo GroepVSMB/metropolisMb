@@ -23,6 +23,26 @@
             transform: scale(1.02);
             cursor: not-allowed;
         }
+
+
+        .function-item {
+            position: relative; /* Needed for absolute positioning of badge */
+        }
+
+        .new-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ff4757; /* Red/Pink color */
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to the item */
+        }
     </style>
 
     <x-slot name="header">
@@ -58,9 +78,17 @@
                                     <h3 class="text-xs uppercase font-bold text-gray-400 mb-2 tracking-wider">{{ $categoryName }}</h3>
                                     <ul class="space-y-2">
                                         @foreach($catFunctions as $function)
-                                            <li draggable="true"
+                                           <li draggable="true"
                                                 ondragstart="drag(event, {{ $function->id }})"
-                                                class="group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none">
+                                                {{-- NEW: Trigger acknowledgement on mouse down (click or start of drag) --}}
+                                                onmousedown="acknowledgeFunction({{ $function->id }})"
+                                                class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative">
+
+                                                {{-- NEW: The Badge Logic --}}
+                                                {{-- Note: This relies on the Controller update from the previous step --}}
+                                                @if(!$function->acknowledged_by_users_exists)
+                                                    <span id="badge-{{ $function->id }}" class="new-badge">NIEUW</span>
+                                                @endif
 
                                                 @if($function->image)
                                                     <img src="{{ $function->image }}" class="w-10 h-10 rounded mr-3 object-cover border border-gray-200">
@@ -354,6 +382,29 @@
             document.getElementById('error-text').innerText = msg;
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 5000);
+        }
+
+
+        function acknowledgeFunction(id) {
+            // 1. Select the badge element
+            const badge = document.getElementById(`badge-${id}`);
+            
+            // 2. Only proceed if the badge actually exists (it hasn't been clicked yet)
+            if (badge) {
+                // Optimistic UI: Remove it immediately
+                badge.remove();
+
+                // 3. Send the API request to backend
+                fetch(`/simulation/acknowledge/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}', // Laravel Blade helper for CSRF
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => {
+                    if (!response.ok) console.error("Acknowledgement failed");
+                }).catch(err => console.error(err));
+            }
         }
     </script>
 

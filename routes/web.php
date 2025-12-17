@@ -64,6 +64,8 @@ Route::middleware(['auth', 'verified', 'role:manager'])->group(function () {
 Route::middleware(['auth', 'role:planner'])->group(function () {
     // If you haven't created PlannerController yet, change this back to a closure.
     Route::get('/simulation', [SimulationController::class, 'index'])->name('simulation.dashboard');
+    // NEW: Acknowledgement Route
+    Route::post('/simulation/acknowledge/{id}', [SimulationController::class, 'acknowledgeFunction'])->name('simulation.acknowledge');
 });
 
 // 5. Profile Routes

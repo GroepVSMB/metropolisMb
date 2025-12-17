@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
     {
         // Maak de Manager
         User::factory()->create([
-            'name' => 'De Manager',
+            'name' => 'Manager',
             'email' => 'manager@test.com',
             'role' => UserRole::MANAGER,
             'password' => Hash::make('wachtwoord'),
@@ -28,14 +28,23 @@ class DatabaseSeeder extends Seeder
 
         // Maak de Planner
         User::factory()->create([
-            'name' => 'De Planner',
+            'name' => 'Planner',
             'email' => 'planner@test.com',
             'role' => UserRole::PLANNER,
             'password' => Hash::make('wachtwoord'),
             ]);
 
         User::factory()->create([
-            'name' => 'De Admin',
+            'name' => 'Planner2',
+            'email' => 'planner2@test.com',
+            'role' => UserRole::PLANNER,
+            'password' => Hash::make('wachtwoord'),
+        ]);
+
+
+
+        User::factory()->create([
+            'name' => 'Admin',
             'email' => 'admin@test.com',
             'role' => UserRole::ADMIN,
             'password' => Hash::make('wachtwoord'),

@@ -161,7 +161,7 @@
 
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
 
-                        @if(Auth::check() && (Auth::user()->role === 'manager' || (isset(Auth::user()->role->value) && Auth::user()->role->value === 'manager')))
+                        @if(Auth::check() && Auth::user()->hasRole('manager'))
                             <a :href="'/library/' + activeItem?.id + '/edit'"
                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-metro-darkred text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
                                 Bewerken
