@@ -49,8 +49,32 @@ class User extends Authenticatable
         ];
     }
 
-    public function hasRole(UserRole $role): bool // Function to check role
+    public function hasRole(string|UserRole $checkRole): bool
     {
-        return $this->role === $role;
+        // 1. Get the current user's role as a standardized string
+        // If it's an Enum, grab ->value, otherwise use the string directly.
+        $userRole = $this->role instanceof \BackedEnum ? $this->role->value : $this->role;
+
+        // 2. ADMIN OVERRIDE:
+        // If the user is an Admin, they pass every check automatically.
+        if ($userRole === UserRole::ADMIN->value) {
+            return true;
+        }
+
+        // 3. Standardize the role we are checking against
+        // If the input is an Enum, grab ->value, otherwise use the string.
+        $checkValue = $checkRole instanceof \BackedEnum ? $checkRole->value : $checkRole;
+
+        // 4. Perform the comparison
+        return $userRole === $checkValue;
+    }
+
+    public function getRoleLabel(): string
+    {
+        // 1. Get the role string (handle both Enum object and plain string)
+        $role = $this->role instanceof \BackedEnum ? $this->role->value : $this->role;
+        
+        // 2. Return it capitalized (e.g., "manager" -> "Manager")
+        return ucfirst($role);
     }
 }

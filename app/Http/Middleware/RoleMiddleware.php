@@ -9,11 +9,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next, string $role): Response
     {
         if (! $request->user()) {
@@ -27,8 +22,15 @@ class RoleMiddleware
             $userRole = $userRole->value;
         }
 
+        // --- NEW CODE START ---
+        // Grant "Super Access" if the user is an Admin.
+        // We check against the Enum value (safest) or the hardcoded string 'admin'.
+        if ($userRole === UserRole::ADMIN->value || strtolower($userRole) === 'admin') {
+            return $next($request);
+        }
+        // --- NEW CODE END ---
+
         // 2. Perform the comparison (String vs String)
-        // We use strtolower just to be safe against case sensitivity (Planner vs planner)
         if (strtolower($userRole) !== strtolower($role)) {
             abort(403, "Je hebt geen toegang tot deze pagina. Jij hebt niet de role: $role");
         }
