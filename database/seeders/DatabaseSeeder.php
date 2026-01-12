@@ -52,7 +52,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             CategorySeeder::class,
-            CityFunctionSeeder::class
+            CityFunctionSeeder::class,
+            SimulationEventSeeder::class
         ]);
 
         $this->call(CategoryIncompatibilitySeeder::class);

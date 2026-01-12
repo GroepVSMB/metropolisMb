@@ -4,6 +4,7 @@ use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SimulationController;
 use App\Http\Controllers\RuleController;
+use App\Http\Controllers\EventController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -66,6 +67,9 @@ Route::middleware(['auth', 'role:planner'])->group(function () {
     Route::get('/simulation', [SimulationController::class, 'index'])->name('simulation.dashboard');
     // NEW: Acknowledgement Route
     Route::post('/simulation/acknowledge/{id}', [SimulationController::class, 'acknowledgeFunction'])->name('simulation.acknowledge');
+
+    // event
+    Route::resource('events', EventController::class);
 });
 
 // 5. Profile Routes

@@ -5,16 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\CityFunction;
 use App\Models\Simulation;
+use App\Models\SimulationEvent; // 1. IMPORT ADDED
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Auth; // Import Auth
+use Illuminate\Support\Facades\Auth;
 
 class SimulationController extends Controller
 {
-   public function index()
+    public function index()
     {
-        // 1. Fetch Functions with Category AND check if current user acknowledged them
-        // We use 'withExists' to add a boolean 'acknowledged_by_users_exists' to the result
+        // --- 1. FUNCTIONS & ACKNOWLEDGEMENTS (Existing Logic) ---
         $functions = CityFunction::with('category')
             ->withExists(['acknowledgedByUsers' => function ($query) {
                 $query->where('user_id', Auth::id());
@@ -22,7 +22,7 @@ class SimulationController extends Controller
             ->get()
             ->sortBy('category.name');
 
-        // ... (Step 2 and Compatibility logic remains the same) ...
+        // --- 2. RULES (Existing Logic) ---
         $categories = Category::with('incompatibleCategories')->get();
         $incompatibilityRules = [];
         foreach ($categories as $cat) {
@@ -32,7 +32,26 @@ class SimulationController extends Controller
             }
         }
 
-        // 3. Prepare Data
+        // --- 3. EVENTS (NEW LOGIC FOR SIM.4) ---
+        // Fetch events and eagerly load impacts + category names
+        $events = SimulationEvent::with(['impacts.category'])->get();
+
+        // Map events to a clean JSON structure for the frontend
+        $jsEventsData = $events->map(function($e) {
+            return [
+                'id' => $e->id,
+                'name' => $e->name,
+                'duration' => $e->duration_minutes,
+                'impacts' => $e->impacts->map(function($i) {
+                    return [
+                        'category_name' => $i->category->name ?? 'Unknown',
+                        'adjustment' => $i->livability_adjustment
+                    ];
+                })
+            ];
+        });
+
+        // --- 4. PREPARE VIEW DATA ---
         $groupedFunctions = $functions->groupBy(fn($f) => $f->category->name ?? 'Overig');
 
         $jsFunctionsData = $functions->map(function($f) {
@@ -43,27 +62,28 @@ class SimulationController extends Controller
                 'color_hex' => $f->category->color_hex ?? '#cccccc',
                 'livability' => $f->livability_number,
                 'image' => $f->image,
-                // Add the new flag. If it exists in pivot, it's NOT new.
                 'is_new' => !$f->acknowledged_by_users_exists, 
             ];
         })->values();
 
-        return view('simulation.dashboard', compact('groupedFunctions', 'jsFunctionsData', 'incompatibilityRules'));
+        // Pass 'jsEventsData' to the view
+        return view('simulation.dashboard', compact(
+            'groupedFunctions', 
+            'jsFunctionsData', 
+            'incompatibilityRules', 
+            'jsEventsData'
+        ));
     }
 
-    // New Method: Handle Acknowledgement via AJAX
+    // --- OTHER METHODS (Unchanged) ---
+
     public function acknowledgeFunction($id)
     {
         $function = CityFunction::findOrFail($id);
-        
-        // Attach current user to the function in the pivot table
-        // 'syncWithoutDetaching' ensures we don't get duplicate entry errors
         $function->acknowledgedByUsers()->syncWithoutDetaching([Auth::id()]);
-
         return response()->json(['message' => 'Acknowledged']);
     }
 
-    // ... keep your other methods (list, store, etc.) as they were ...
     public function list() { return response()->json(Simulation::orderBy('created_at', 'desc')->get()); }
 
     public function store(Request $request)
