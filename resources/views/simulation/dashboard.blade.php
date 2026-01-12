@@ -143,6 +143,27 @@
                         </div>
                         <span id="score-val" class="text-4xl font-black">6.0</span>
                     </article>
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                        <h4 class="font-bold text-gray-800 mb-2 border-b pb-1">Event Simulatie</h4>
+                        
+                        {{-- Active Indicator --}}
+                        <div id="active-event-display" class="hidden bg-blue-50 text-blue-800 p-2 rounded text-sm mb-3 border border-blue-200 text-center font-bold animate-pulse">
+                            <span id="event-name">Geen Event</span> Actief!
+                        </div>
+                    
+                        {{-- Event Buttons --}}
+                        <div class="space-y-2">
+                            @foreach($jsEventsData as $event)
+                                <button 
+                                    id="btn-event-{{ $event['id'] }}"
+                                    onclick="triggerEvent({{ $event['id'] }})" 
+                                    class="w-full text-left px-3 py-2 text-xs font-medium bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded flex justify-between items-center transition-all">
+                                    <span class="font-bold text-gray-700">{{ $event['name'] }}</span>
+                                    <span class="text-xs text-gray-400 bg-white px-1 rounded border">{{ $event['duration'] }} min</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
 
                     <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 text-sm text-gray-600">
                         <h4 class="font-bold text-gray-800 mb-2 border-b pb-1">Actieve Regels:</h4>
@@ -169,7 +190,9 @@
     <script>
         const dbFunctions = @json($jsFunctionsData);
         const incompatibilityRules = @json($incompatibilityRules ?? []);
-
+        // --- NEW: Voeg deze twee regels toe ---
+        const eventDefinitions = @json($jsEventsData); 
+        let activeEvents = [];
         const availableFunctions = [
             { id: 'empty', name: 'Kavel', color_hex: '#ffffff', category: 'Leeg', livability: 0, image: null },
             ...dbFunctions
@@ -365,17 +388,7 @@
             }
         }
 
-        function updateScore() {
-            let score = 6.0;
-            gridState.forEach(funcIndex => {
-                const func = availableFunctions[funcIndex];
-                if(funcIndex !== 0 && func) {
-                    score += (func.livability - 100) * 0.01;
-                }
-            });
-            score = Math.max(1, Math.min(10, score));
-            document.getElementById('score-val').innerText = score.toFixed(1);
-        }
+    
 
         function showError(msg) {
             const toast = document.getElementById('error-toast');
@@ -406,6 +419,117 @@
                 }).catch(err => console.error(err));
             }
         }
+
+       // --- NIEUWE VERSIE VAN EVENT LOGICA ---
+
+   // --- JAVASCRIPT LOGICA ---
+
+    function triggerEvent(eventId) {
+        const eventDef = eventDefinitions.find(e => e.id === eventId);
+        if(!eventDef) return;
+
+        // STAP 1: Stop alle HUIDIGE events (reset knoppen en maak lijst leeg)
+        [...activeEvents].forEach(existingEvent => {
+            endEvent(existingEvent.id);
+        });
+
+        // STAP 2: Voeg het NIEUWE event toe
+        activeEvents.push(eventDef);
+        
+        // STAP 3: UI Update (Banner)
+        const display = document.getElementById('active-event-display');
+        document.getElementById('event-name').innerText = eventDef.name;
+        // Gebruik hier ook de metro-kleur voor de tekst
+        display.className = "bg-red-50 text-metro-darkred p-2 rounded text-sm mb-3 border border-metro-darkred text-center font-bold animate-pulse";
+        display.classList.remove('hidden');
+
+        // STAP 4: UI Update (Knop Highlighten in Metro Stijl)
+        const btn = document.getElementById(`btn-event-${eventId}`);
+        if(btn) {
+            // Verwijder standaard grijze styling
+            btn.classList.remove('bg-gray-50', 'border-gray-200');
+            
+            // Voeg Metro styling toe: Lichte rode achtergrond, Metro-rode rand en tekst
+            btn.classList.add('bg-red-50', 'border-metro-darkred', 'text-metro-darkred', 'ring-1', 'ring-metro-darkred');
+        }
+
+        // STAP 5: Herbereken score
+        updateScore();
+
+        // STAP 6: Auto-stop na 5 seconden
+        setTimeout(() => {
+            endEvent(eventId);
+        }, 5000); 
+    }
+
+    function endEvent(eventId) {
+        // Verwijder uit lijst
+        activeEvents = activeEvents.filter(e => e.id !== eventId);
+        
+        // UI: Verberg banner als er niets meer actief is
+        if(activeEvents.length === 0) {
+            document.getElementById('active-event-display').classList.add('hidden');
+        }
+
+        // UI: Reset de knop stijl naar standaard
+        const btn = document.getElementById(`btn-event-${eventId}`);
+        if(btn) {
+            // Verwijder de Metro styling
+            btn.classList.remove('bg-red-50', 'border-metro-darkred', 'text-metro-darkred', 'ring-1', 'ring-metro-darkred');
+            
+            // Voeg de standaard grijze styling weer toe
+            btn.classList.add('bg-gray-50', 'border-gray-200');
+        }
+
+        // Herbereken score (terug naar normaal)
+        updateScore();
+    }
+
+    function updateScore() {
+        let baseScore = 6.0;
+        let totalScore = baseScore;
+
+        gridState.forEach(funcIndex => {
+            // funcIndex 0 betekent 'leeg', dus die slaan we over
+            if(funcIndex !== 0) {
+                const func = availableFunctions[funcIndex];
+                
+                if(func) {
+                    // A. Basis Leefbaarheid (Zorg dat het een nummer is!)
+                    let itemLivability = Number(func.livability);
+
+                    // B. Check actieve events
+                    activeEvents.forEach(event => {
+                        // Zoek of dit event impact heeft op de categorie van deze functie
+                        const impact = event.impacts.find(i => i.category_name === func.category);
+                        if(impact) {
+                            // Tel de adjustment erbij op (bijv. +20 of -10)
+                            itemLivability += Number(impact.adjustment);
+                        }
+                    });
+
+                    // C. Formule: Elke 100 punten is neutraal. 
+                    // 110 punten = +0.1 op score. 90 punten = -0.1 op score.
+                    let effect = (itemLivability - 100) * 0.01;
+                    totalScore += effect;
+                }
+            }
+        });
+
+        // Begrens de score tussen 1.0 en 10.0
+        totalScore = Math.max(1, Math.min(10, totalScore));
+        
+        // Update de tekst op het scherm
+        const scoreEl = document.getElementById('score-val');
+        scoreEl.innerText = totalScore.toFixed(1);
+
+        // Visuele feedback: Maak de tekst blauw als er een event bezig is
+        if(activeEvents.length > 0) {
+            scoreEl.classList.add('text-blue-600');
+        } else {
+            scoreEl.classList.remove('text-blue-600');
+        }
+    }
     </script>
 
     {{-- DRAG GHOST TEMPLATE (Dynamic Size) --}}
