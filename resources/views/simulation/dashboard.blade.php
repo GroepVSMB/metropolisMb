@@ -43,6 +43,12 @@
             z-index: 10;
             pointer-events: none; /* Let clicks pass through to the item */
         }
+
+        .function-item img
+        {
+            width: min(160px, 20vw);
+            height: min(160px, 20vw);
+        }
     </style>
 
     <x-slot name="header">
