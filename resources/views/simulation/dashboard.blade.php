@@ -136,12 +136,24 @@
 
                 {{-- COLUMN 3: Score & Rules --}}
                 <aside class="w-full lg:w-1/4 min-w-[250px] flex flex-col gap-5">
-                    <article class="bg-[#448a28] p-5 text-white font-bold flex justify-between items-center shadow-lg rounded-lg transform hover:scale-105 transition-transform">
-                        <div class="flex flex-col">
+                    <article class="bg-[#448a28] p-5 text-white font-bold flex justify-between items-center shadow-lg rounded-lg transform hover:scale-105 transition-transform relative overflow-hidden">
+                        <div class="flex flex-col z-10">
                             <span class="uppercase text-xs opacity-80 tracking-wider">Huidige Score</span>
                             <span class="text-xl">Leefbaarheid</span>
                         </div>
-                        <span id="score-val" class="text-4xl font-black">6.0</span>
+                        
+                        <div class="flex flex-col items-end z-10">
+                            {{-- The Main Score --}}
+                            <span id="score-val" class="text-4xl font-black transition-all duration-300">6.0</span>
+                            
+                            {{-- The Delta Indicator (Hidden by default) --}}
+                            <span id="score-delta" class="text-sm font-bold opacity-0 transition-all duration-500 transform translate-y-2 bg-white/20 px-2 rounded backdrop-blur-sm">
+                                -
+                            </span>
+                        </div>
+
+                        {{-- Optional: Background Pulse Effect for visual update --}}
+                        <div id="score-flash" class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-300"></div>
                     </article>
                     <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                         <h4 class="font-bold text-gray-800 mb-2 border-b pb-1">Event Simulatie</h4>
@@ -181,6 +193,7 @@
                         @endif
                     </div>
                 </aside>
+                
 
             </div>
         </div>
@@ -193,6 +206,10 @@
         // --- NEW: Voeg deze twee regels toe ---
         const eventDefinitions = @json($jsEventsData); 
         let activeEvents = [];
+        
+        let currentScore = 6.0; // Track the current score globally
+        let deltaTimeout = null; // Timer for hiding the delta
+
         const availableFunctions = [
             { id: 'empty', name: 'Kavel', color_hex: '#ffffff', category: 'Leeg', livability: 0, image: null },
             ...dbFunctions
@@ -485,49 +502,129 @@
         updateScore();
     }
 
-    function updateScore() {
+   function updateScore() {
         let baseScore = 6.0;
-        let totalScore = baseScore;
+        let newTotalScore = baseScore;
 
+        // 1. Calculate Score (Existing Logic)
         gridState.forEach(funcIndex => {
-            // funcIndex 0 betekent 'leeg', dus die slaan we over
             if(funcIndex !== 0) {
                 const func = availableFunctions[funcIndex];
-                
                 if(func) {
-                    // A. Basis Leefbaarheid (Zorg dat het een nummer is!)
                     let itemLivability = Number(func.livability);
 
-                    // B. Check actieve events
                     activeEvents.forEach(event => {
-                        // Zoek of dit event impact heeft op de categorie van deze functie
                         const impact = event.impacts.find(i => i.category_name === func.category);
                         if(impact) {
-                            // Tel de adjustment erbij op (bijv. +20 of -10)
                             itemLivability += Number(impact.adjustment);
                         }
                     });
 
-                    // C. Formule: Elke 100 punten is neutraal. 
-                    // 110 punten = +0.1 op score. 90 punten = -0.1 op score.
                     let effect = (itemLivability - 100) * 0.01;
-                    totalScore += effect;
+                    newTotalScore += effect;
                 }
             }
         });
 
-        // Begrens de score tussen 1.0 en 10.0
-        totalScore = Math.max(1, Math.min(10, totalScore));
-        
-        // Update de tekst op het scherm
-        const scoreEl = document.getElementById('score-val');
-        scoreEl.innerText = totalScore.toFixed(1);
+        // Clamp score
+        newTotalScore = Math.max(1, Math.min(10, newTotalScore));
 
-        // Visuele feedback: Maak de tekst blauw als er een event bezig is
+        // 2. DELTA CALCULATION logic (The User Story requirement)
+        const diff = newTotalScore - currentScore;
+        const scoreEl = document.getElementById('score-val');
+        const deltaEl = document.getElementById('score-delta');
+        const flashEl = document.getElementById('score-flash');
+
+        // Only show update if the score actually changed significantly
+        if (Math.abs(diff) > 0.001) {
+            
+            // Determine Direction
+            const isPositive = diff > 0;
+            // --- NEW: Play Generated Sound ---
+            playSynthSound(isPositive ? 'success' : 'failure');
+            const arrow = isPositive ? '▲' : '▼';
+            const colorClass = isPositive ? 'text-green-100' : 'text-red-100'; // Light colors because bg is dark green
+
+            
+            
+            // Update Delta Text
+            deltaEl.innerText = `${arrow} ${Math.abs(diff).toFixed(2)}`;
+            
+            // Reset classes
+            deltaEl.className = `text-sm font-bold transition-all duration-500 px-2 rounded backdrop-blur-sm ${colorClass}`;
+            
+            // Animate: Fade In and Move Up
+            requestAnimationFrame(() => {
+                deltaEl.classList.remove('opacity-0', 'translate-y-2');
+            });
+
+            // Flash Effect on the card background
+            flashEl.classList.replace('opacity-0', 'opacity-20');
+            setTimeout(() => flashEl.classList.replace('opacity-20', 'opacity-0'), 300);
+
+            // Clear existing timer if updates happen fast
+            if (deltaTimeout) clearTimeout(deltaTimeout);
+
+            // Fade out delta after 3 seconds
+            deltaTimeout = setTimeout(() => {
+                deltaEl.classList.add('opacity-0', 'translate-y-2');
+            }, 3000);
+        }
+
+        // 3. Update the Main Score Display
+        scoreEl.innerText = newTotalScore.toFixed(1);
+        
+        // Update global tracker
+        currentScore = newTotalScore; 
+
+        // Visual feedback for events (Existing logic)
         if(activeEvents.length > 0) {
-            scoreEl.classList.add('text-blue-600');
+            scoreEl.classList.add('text-blue-200'); // Changed to lighter blue for better contrast on green
         } else {
-            scoreEl.classList.remove('text-blue-600');
+            scoreEl.classList.remove('text-blue-200');
+        }
+    }   
+    // Initialize Audio Context (Standard browser API)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSynthSound(type) {
+        // Browsers require a user interaction to start audio context
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'success') {
+            // High pitch "Ping" (Sine wave going from 600Hz to 800Hz)
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(600, now);
+            oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+            
+            // Volume Fade out
+            gainNode.gain.setValueAtTime(0.1, now); // Keep volume low (0.1)
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            
+            oscillator.start(now);
+            oscillator.stop(now + 0.5);
+        } else {
+            // Low pitch "Thud" (Triangle wave dropping pitch)
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(150, now);
+            oscillator.frequency.linearRampToValueAtTime(100, now + 0.2);
+            
+            // Volume Fade out
+            gainNode.gain.setValueAtTime(0.15, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            
+            oscillator.start(now);
+            oscillator.stop(now + 0.3);
         }
     }
     </script>
