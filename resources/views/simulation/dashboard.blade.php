@@ -19,6 +19,12 @@
         }
 
         .function-item { position: relative; }
+
+         .function-item img
+        {
+            width: min(160px, 20vw);
+            height: min(160px, 20vw);
+        }
         .new-badge {
             position: absolute; top: -5px; right: -5px;
             background-color: #ff4757; color: white;
