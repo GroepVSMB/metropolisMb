@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\CityFunction;
+use App\Models\QualityMetric;
 use Illuminate\Http\Request;
 
 class LibraryController extends Controller
@@ -104,4 +105,52 @@ class LibraryController extends Controller
         $function->delete();
         return back()->with('success', 'Functie verwijderd.');
     }
+
+    public function effectsMatrix()
+    {
+        // 1. Fetch Functions
+        $functions = CityFunction::with('category')->get()->sortBy('name');
+
+        // 2. Fetch Metrics (This is the missing part causing your error)
+        $metrics = QualityMetric::all();
+
+        // 3. Eager load impacts to make it fast
+        $functions->load('impacts');
+
+        // 4. Send BOTH variables to the view
+        return view('library.matrix', compact('functions', 'metrics'));
+    }
+
+    public function updateEffectsMatrix(Request $request)
+    {
+        $matrix = $request->input('matrix');
+
+        // Check if matrix is empty to prevent errors
+        if (!$matrix) {
+            return back()->with('error', 'No data to save.');
+        }
+
+        foreach ($matrix as $funcId => $metricImpacts) {
+            // ENSURE THIS VARIABLE MATCHES: $metricId
+            foreach ($metricImpacts as $metricId => $score) {
+
+                if ($score != 0) {
+                    \App\Models\FunctionImpact::updateOrCreate(
+                    // We use $metricId here
+                        ['city_function_id' => $funcId, 'quality_metric_id' => $metricId],
+                        ['impact' => $score]
+                    );
+                } else {
+                    // And we use $metricId here
+                    \App\Models\FunctionImpact::where('city_function_id', $funcId)
+                        ->where('quality_metric_id', $metricId)
+                        ->delete();
+                }
+            }
+        }
+
+        return back()->with('success', 'Impact configuration saved.');
+    }
+
+
 }

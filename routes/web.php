@@ -59,6 +59,9 @@ Route::middleware(['auth', 'verified', 'role:manager'])->group(function () {
 
     // Delete
     Route::delete('/manager/{id}', [RuleController::class, 'destroy'])->name('adjacency.destroy');
+
+    Route::get('/library/matrix', [LibraryController::class, 'effectsMatrix'])->name('library.matrix');
+    Route::post('/library/matrix', [LibraryController::class, 'updateEffectsMatrix'])->name('library.matrix.update');
 });
 
 // 4. Planner Routes

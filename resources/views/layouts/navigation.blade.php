@@ -35,6 +35,11 @@
                                     class="border-transparent text-gray-500 hover:text-metro-darkred hover:border-metro-darkred focus:text-metro-darkred focus:border-metro-darkred {{ request()->routeIs('adjacency.index') ? '!border-metro-darkred !text-metro-darkred' : '' }}">
                             {{ __('Beheer Regels') }}
                         </x-nav-link>
+
+                        <x-nav-link :href="route('library.matrix')" :active="request()->routeIs('library.matrix')"
+                                    class="border-transparent text-gray-500 hover:text-metro-darkred hover:border-metro-darkred focus:text-metro-darkred focus:border-metro-darkred {{ request()->routeIs('library.matrix') ? '!border-metro-darkred !text-metro-darkred' : '' }}">
+                            {{ __('Effects Matrix') }}
+                        </x-nav-link>
                     @endif
 
                     {{-- PLANNER ONLY --}}
@@ -115,7 +120,7 @@
                 </x-responsive-nav-link>
             @endif
 
-    
+
 
            @if(Auth::check() && Auth::user()->hasRole(checkRole: 'planner'))
                 <x-responsive-nav-link :href="route('simulation.dashboard')" :active="request()->routeIs('simulation.dashboard')">

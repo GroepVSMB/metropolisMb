@@ -20,4 +20,16 @@ class CityFunction extends Model
     {
         return $this->belongsToMany(User::class, 'city_function_user')->withTimestamps();
     }
+
+    public function impacts()
+    {
+        return $this->hasMany(FunctionImpact::class);
+    }
+
+    // Helper to get a specific impact score easily
+    public function getImpactOn($metricId)
+    {
+        $impact = $this->impacts->where('quality_metric_id', $metricId)->first();
+        return $impact ? $impact->impact : 0;
+    }
 }
