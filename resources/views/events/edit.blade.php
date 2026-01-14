@@ -9,7 +9,7 @@
                 <form action="{{ route('events.update', $event->id) }}" method="POST">
                     @csrf
                     @method('PUT')
-                    
+
                     {{-- Basis Info --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div>
@@ -36,20 +36,21 @@
                     <hr class="my-6">
 
                     {{-- Impacts Sectie --}}
-                    <h3 class="font-bold text-lg mb-3">Definieer Impact per Categorie</h3>
-                    
+                    <h3 class="font-bold text-lg mb-3">Definieer Impact per Kwaliteits Metriek</h3>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach($categories as $category)
+                        {{-- CHANGED: Loop through metrics --}}
+                        @foreach($metrics as $metric)
                             <div class="flex items-center justify-between bg-gray-50 p-3 rounded border">
-                                <span class="font-medium text-gray-700">{{ $category->name }}</span>
+                                <span class="font-medium text-gray-700">{{ $metric->name }}</span>
                                 <div class="flex items-center">
                                     <span class="text-gray-400 mr-2 text-xs">Aanpassing:</span>
-                                    {{-- Hier halen we de bestaande waarde op uit de array die we in de controller maakten --}}
-                                    <input type="number" 
-                                           name="impacts[{{ $category->id }}]" 
-                                           value="{{ $currentImpacts[$category->id] ?? '' }}"
+                                    <input type="number"
+                                           name="impacts[{{ $metric->id }}]"
+                                           {{-- Uses pre-filled array from controller --}}
+                                           value="{{ $currentImpacts[$metric->id] ?? '' }}"
                                            placeholder="0"
-                                           class="w-20 border-gray-300 rounded shadow-sm text-right">
+                                           class="w-20 border-gray-300 rounded shadow-sm text-right focus:border-metro-darkred focus:ring-metro-darkred">
                                 </div>
                             </div>
                         @endforeach
@@ -57,7 +58,7 @@
 
                     <div class="mt-6 flex justify-end space-x-3">
                         <a href="{{ route('events.index') }}" class="text-gray-600 px-4 py-2 hover:underline flex items-center">Annuleren</a>
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">
+                        <button type="submit" class="bg-metro-darkred text-white font-bold px-4 py-2 rounded shadow hover:bg-red-700">
                             Bijwerken
                         </button>
                     </div>

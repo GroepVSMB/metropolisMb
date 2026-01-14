@@ -4,64 +4,53 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\SimulationEvent;
-use App\Models\Category;
+use App\Models\QualityMetric;
 use App\Models\EventImpact;
 
 class SimulationEventSeeder extends Seeder
 {
     public function run()
     {
-        // 1. Haal Categorieën op (Pas de namen aan aan jouw database!)
-        // Als je niet zeker bent, kun je ook Category::find(1) gebruiken.
-        $catGroen = Category::where('name', 'Groen')->first() ?? Category::first();
-        $catWonen = Category::where('name', 'Wonen')->first() ?? Category::latest()->first();
+        // 1. Get Metrics (Make sure QualityMetricSeeder ran first!)
+        $noise = QualityMetric::where('name', 'Noise Pollution')->first();
+        $air   = QualityMetric::where('name', 'Air Quality')->first();
+        $traffic = QualityMetric::where('name', 'Traffic Flow')->first();
 
-        if (!$catGroen) {
-            $this->command->error('Geen categorieën gevonden. Voeg eerst categorieën toe.');
-            return;
-        }
-
-        // --- EVENT 1: Zomerfestival ---
+        // --- EVENT 1: Music Festival ---
         $festival = SimulationEvent::create([
-            'name' => 'Zomerfestival',
+            'name' => 'Music Festival',
             'type' => 'one_off',
-            'duration_minutes' => 5, // Kort voor demo
+            'duration_minutes' => 120,
         ]);
 
-        // Impact: Groen wordt leuker (+20), maar Wonen heeft last van geluid (-15)
-        EventImpact::create([
-            'simulation_event_id' => $festival->id,
-            'category_id' => $catGroen->id,
-            'livability_adjustment' => 20
-        ]);
-        
-        if ($catWonen) {
+        if ($noise) {
             EventImpact::create([
                 'simulation_event_id' => $festival->id,
-                'category_id' => $catWonen->id,
-                'livability_adjustment' => -15
+                'quality_metric_id' => $noise->id,
+                'impact' => -30 // Lots of noise (Negative impact)
             ]);
         }
 
-        // --- EVENT 2: Hittegolf ---
-        $heatwave = SimulationEvent::create([
-            'name' => 'Hittegolf',
+        if ($traffic) {
+            EventImpact::create([
+                'simulation_event_id' => $festival->id,
+                'quality_metric_id' => $traffic->id,
+                'impact' => -10 // Traffic jams
+            ]);
+        }
+
+        // --- EVENT 2: Car Free Sunday ---
+        $carFree = SimulationEvent::create([
+            'name' => 'Car Free Sunday',
             'type' => 'recurring',
-            'duration_minutes' => 10,
+            'duration_minutes' => 600,
         ]);
 
-        // Impact: Groen is essentieel (+50), Wonen is onprettig (-10)
-        EventImpact::create([
-            'simulation_event_id' => $heatwave->id,
-            'category_id' => $catGroen->id,
-            'livability_adjustment' => 50
-        ]);
-        
-        if ($catWonen) {
+        if ($air) {
             EventImpact::create([
-                'simulation_event_id' => $heatwave->id,
-                'category_id' => $catWonen->id,
-                'livability_adjustment' => -10
+                'simulation_event_id' => $carFree->id,
+                'quality_metric_id' => $air->id,
+                'impact' => 20 // Clean air!
             ]);
         }
     }

@@ -11,19 +11,23 @@ return new class extends Migration
         // 1. The Event Definition
         Schema::create('simulation_events', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // e.g., "Festival", "Rush Hour"
+            $table->string('name');
             $table->enum('type', ['one_off', 'recurring'])->default('one_off');
-            $table->integer('duration_minutes')->default(60); 
-            $table->integer('recurrence_interval_minutes')->nullable(); // e.g., every 1440 mins (24h)
+            $table->integer('duration_minutes')->default(60);
+            $table->integer('recurrence_interval_minutes')->nullable();
             $table->timestamps();
         });
 
-        // 2. The Specific Impacts (e.g., Parks -> Livability +10)
+        // 2. The Specific Impacts
+        // CHANGED: Now links to quality_metrics, just like the Matrix
         Schema::create('event_impacts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('simulation_event_id')->constrained()->onDelete('cascade');
-            $table->foreignId('category_id')->constrained()->onDelete('cascade');
-            $table->integer('livability_adjustment'); // e.g., +10 or -20
+
+            // Replaced category_id with quality_metric_id
+            $table->foreignId('quality_metric_id')->constrained()->onDelete('cascade');
+
+            $table->integer('impact'); // The +/- score
             $table->timestamps();
         });
     }

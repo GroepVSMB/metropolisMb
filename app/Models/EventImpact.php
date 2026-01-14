@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class EventImpact extends Model
 {
-    protected $fillable = ['simulation_event_id', 'category_id', 'livability_adjustment'];
+    // Updated fillable fields
+    protected $fillable = ['simulation_event_id', 'quality_metric_id', 'impact'];
 
-    public function category()
+    // Updated relationship
+    public function qualityMetric()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(QualityMetric::class);
     }
 }

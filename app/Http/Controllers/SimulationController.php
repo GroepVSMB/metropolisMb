@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\CityFunction;
 use App\Models\Simulation;
-use App\Models\SimulationEvent; // 1. IMPORT ADDED
+use App\Models\SimulationEvent;
+use App\Models\QualityMetric; // <--- Don't forget this import!
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -14,15 +15,20 @@ class SimulationController extends Controller
 {
     public function index()
     {
-        // --- 1. FUNCTIONS & ACKNOWLEDGEMENTS (Existing Logic) ---
-        $functions = CityFunction::with('category')
+        // --- 1. METRICS (NEW) ---
+        // Fetch the columns for the score table (Air Quality, Noise, etc.)
+        $metrics = QualityMetric::all();
+
+        // --- 2. FUNCTIONS & IMPACTS (UPDATED) ---
+        // We now eager load 'impacts' so we know how each function affects the metrics
+        $functions = CityFunction::with(['category', 'impacts'])
             ->withExists(['acknowledgedByUsers' => function ($query) {
                 $query->where('user_id', Auth::id());
             }])
             ->get()
             ->sortBy('category.name');
 
-        // --- 2. RULES (Existing Logic) ---
+        // --- 3. RULES (Existing Logic) ---
         $categories = Category::with('incompatibleCategories')->get();
         $incompatibilityRules = [];
         foreach ($categories as $cat) {
@@ -32,11 +38,12 @@ class SimulationController extends Controller
             }
         }
 
-        // --- 3. EVENTS (NEW LOGIC FOR SIM.4) ---
-        // Fetch events and eagerly load impacts + category names
-        $events = SimulationEvent::with(['impacts.category'])->get();
+        // --- 4. EVENTS (Existing Logic) ---
+        // Note: You might want to update events to use QualityMetrics later too,
+        // but for now we keep this to prevent breaking your current event logic.
+        $events = SimulationEvent::with(['impacts.qualityMetric'])->get();
 
-        // Map events to a clean JSON structure for the frontend
+        // Map events to a clean JSON structure
         $jsEventsData = $events->map(function($e) {
             return [
                 'id' => $e->id,
@@ -44,14 +51,15 @@ class SimulationController extends Controller
                 'duration' => $e->duration_minutes,
                 'impacts' => $e->impacts->map(function($i) {
                     return [
-                        'category_name' => $i->category->name ?? 'Unknown',
-                        'adjustment' => $i->livability_adjustment
+                        // Ensure this matches your Event logic (Category vs QualityMetric)
+                        'metric_name' => $i->qualityMetric->name ?? 'Unknown',
+                        'adjustment' => $i->impact // or livability_adjustment
                     ];
                 })
             ];
         });
 
-        // --- 4. PREPARE VIEW DATA ---
+        // --- 5. PREPARE VIEW DATA (UPDATED) ---
         $groupedFunctions = $functions->groupBy(fn($f) => $f->category->name ?? 'Overig');
 
         $jsFunctionsData = $functions->map(function($f) {
@@ -60,22 +68,24 @@ class SimulationController extends Controller
                 'name' => $f->name,
                 'category' => $f->category->name ?? 'Onbekend',
                 'color_hex' => $f->category->color_hex ?? '#cccccc',
-                'livability' => $f->livability_number,
                 'image' => $f->image,
-                'is_new' => !$f->acknowledged_by_users_exists, 
+                'is_new' => !$f->acknowledged_by_users_exists,
+                // NEW: Send the specific impacts map { metric_id: score }
+                'impacts' => $f->impacts->pluck('impact', 'quality_metric_id'),
             ];
         })->values();
 
-        // Pass 'jsEventsData' to the view
+        // Pass everything to the view, including the new $metrics
         return view('simulation.dashboard', compact(
-            'groupedFunctions', 
-            'jsFunctionsData', 
-            'incompatibilityRules', 
-            'jsEventsData'
+            'groupedFunctions',
+            'jsFunctionsData',
+            'incompatibilityRules',
+            'jsEventsData',
+            'metrics' // <--- Essential for the view loop
         ));
     }
 
-    // --- OTHER METHODS (Unchanged) ---
+    // --- OTHER METHODS (Keep these exactly as they were) ---
 
     public function acknowledgeFunction($id)
     {
