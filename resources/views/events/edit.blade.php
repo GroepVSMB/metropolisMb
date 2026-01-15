@@ -39,15 +39,19 @@
                     <h3 class="font-bold text-lg mb-3">Definieer Impact per Kwaliteits Metriek</h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {{-- CHANGED: Loop through metrics --}}
                         @foreach($metrics as $metric)
                             <div class="flex items-center justify-between bg-gray-50 p-3 rounded border">
-                                <span class="font-medium text-gray-700">{{ $metric->name }}</span>
-                                <div class="flex items-center">
+                                {{-- ADDED: truncate and title --}}
+                                <span class="font-medium text-gray-700 truncate mr-2" title="{{ $metric->name }}">
+                                    {{ $metric->name }}
+                                </span>
+
+                                {{-- ADDED: flex-shrink-0 --}}
+                                <div class="flex items-center flex-shrink-0">
                                     <span class="text-gray-400 mr-2 text-xs">Aanpassing:</span>
                                     <input type="number"
                                            name="impacts[{{ $metric->id }}]"
-                                           {{-- Uses pre-filled array from controller --}}
+                                           {{-- Keep existing value logic --}}
                                            value="{{ $currentImpacts[$metric->id] ?? '' }}"
                                            placeholder="0"
                                            class="w-20 border-gray-300 rounded shadow-sm text-right focus:border-metro-darkred focus:ring-metro-darkred">
