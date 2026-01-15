@@ -12,22 +12,27 @@ return new class extends Migration
         Schema::create('simulation_events', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            // REMOVED: category_id (We use a pivot table now)
             $table->enum('type', ['one_off', 'recurring'])->default('one_off');
             $table->integer('duration_minutes')->default(60);
             $table->integer('recurrence_interval_minutes')->nullable();
             $table->timestamps();
         });
 
-        // 2. The Specific Impacts
-        // CHANGED: Now links to quality_metrics, just like the Matrix
+        // 2. NEW: Pivot Table for Multiple Categories
+        Schema::create('category_simulation_event', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('simulation_event_id')->constrained()->onDelete('cascade');
+            $table->foreignId('category_id')->constrained()->onDelete('cascade');
+            $table->timestamps();
+        });
+
+        // 3. The Specific Impacts (Remains the same)
         Schema::create('event_impacts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('simulation_event_id')->constrained()->onDelete('cascade');
-
-            // Replaced category_id with quality_metric_id
             $table->foreignId('quality_metric_id')->constrained()->onDelete('cascade');
-
-            $table->integer('impact'); // The +/- score
+            $table->integer('impact');
             $table->timestamps();
         });
     }
@@ -35,6 +40,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('event_impacts');
+        Schema::dropIfExists('category_simulation_event');
         Schema::dropIfExists('simulation_events');
     }
 };

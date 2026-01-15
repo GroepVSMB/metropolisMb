@@ -34,7 +34,20 @@
                     </div>
 
                     <hr class="my-6">
-
+                    <div class="md:col-span-2">
+                        <label class="block font-medium text-sm text-gray-700 mb-2">Categorieën</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-gray-50 p-3 rounded border border-gray-200">
+                            @foreach($categories as $cat)
+                                <label class="inline-flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" name="categories[]" value="{{ $cat->id }}"
+                                           {{-- Check if the event has this category --}}
+                                           {{ $event->categories->contains($cat->id) ? 'checked' : '' }}
+                                           class="rounded border-gray-300 text-metro-darkred shadow-sm focus:ring-metro-darkred">
+                                    <span class="text-sm text-gray-700">{{ $cat->name }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
                     {{-- Impacts Sectie --}}
                     <h3 class="font-bold text-lg mb-3">Definieer Impact per Kwaliteits Metriek</h3>
 
@@ -48,7 +61,6 @@
 
                                 {{-- ADDED: flex-shrink-0 --}}
                                 <div class="flex items-center flex-shrink-0">
-                                    <span class="text-gray-400 mr-2 text-xs">Aanpassing:</span>
                                     <input type="number"
                                            name="impacts[{{ $metric->id }}]"
                                            {{-- Keep existing value logic --}}
@@ -59,7 +71,6 @@
                             </div>
                         @endforeach
                     </div>
-
                     <div class="mt-6 flex justify-end space-x-3">
                         <a href="{{ route('events.index') }}" class="text-gray-600 px-4 py-2 hover:underline flex items-center">Annuleren</a>
                         <button type="submit" class="bg-metro-darkred text-white font-bold px-4 py-2 rounded shadow hover:bg-red-700">
