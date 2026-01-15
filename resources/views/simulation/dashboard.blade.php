@@ -632,7 +632,7 @@
         function executeShowTooltip(cellIndex) {
             // 1. Basic Data Validation
             const funcIndex = gridState[cellIndex];
-            if (!funcIndex || funcIndex === 0) return;
+            // if (!funcIndex || funcIndex === 0) return;
 
             const func = availableFunctions[funcIndex];
             if (!func) return;
