@@ -103,7 +103,7 @@ class LibraryController extends Controller
     {
         $function = CityFunction::findOrFail($id);
         $function->delete();
-        return back()->with('success', 'Functie verwijderd.');
+        return redirect()->route('library.manage')->with('success', 'Functie verwijderd.');
     }
 
     public function effectsMatrix()
