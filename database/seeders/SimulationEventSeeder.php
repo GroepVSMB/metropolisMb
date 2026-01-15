@@ -11,10 +11,17 @@ class SimulationEventSeeder extends Seeder
 {
     public function run()
     {
-        // 1. Get Metrics (Make sure QualityMetricSeeder ran first!)
-        $noise = QualityMetric::where('name', 'Noise Pollution')->first();
-        $air   = QualityMetric::where('name', 'Air Quality')->first();
-        $traffic = QualityMetric::where('name', 'Traffic Flow')->first();
+        // 1. Fetch existing metrics (Make sure names match your QualityMetricSeeder!)
+        $noise   = QualityMetric::where('name', 'Geluidshinder')->first();
+        $traffic = QualityMetric::where('name', 'Verkeersdoorstroming')->first();
+        $air     = QualityMetric::where('name', 'Luchtkwaliteit')->first();
+        $safety  = QualityMetric::where('name', 'Veiligheid')->first();
+
+        // Safety check: if metrics are missing, stop to prevent crash
+        if (!$noise || !$traffic || !$air || !$safety) {
+            $this->command->warn("Some metrics not found. Skipping Event Impacts.");
+            return;
+        }
 
         // --- EVENT 1: Music Festival ---
         $festival = SimulationEvent::create([
@@ -23,35 +30,36 @@ class SimulationEventSeeder extends Seeder
             'duration_minutes' => 120,
         ]);
 
-        if ($noise) {
-            EventImpact::create([
-                'simulation_event_id' => $festival->id,
-                'quality_metric_id' => $noise->id,
-                'impact' => -30 // Lots of noise (Negative impact)
-            ]);
-        }
+        EventImpact::create([
+            'simulation_event_id' => $festival->id,
+            'quality_metric_id' => $noise->id,
+            'impact' => -30 // Loud noise
+        ]);
 
-        if ($traffic) {
-            EventImpact::create([
-                'simulation_event_id' => $festival->id,
-                'quality_metric_id' => $traffic->id,
-                'impact' => -10 // Traffic jams
-            ]);
-        }
+        EventImpact::create([
+            'simulation_event_id' => $festival->id,
+            'quality_metric_id' => $traffic->id,
+            'impact' => -10 // Traffic jams
+        ]);
 
         // --- EVENT 2: Car Free Sunday ---
         $carFree = SimulationEvent::create([
             'name' => 'Car Free Sunday',
             'type' => 'recurring',
             'duration_minutes' => 600,
+            'recurrence_interval_minutes' => 10080, // Weekly
         ]);
 
-        if ($air) {
-            EventImpact::create([
-                'simulation_event_id' => $carFree->id,
-                'quality_metric_id' => $air->id,
-                'impact' => 20 // Clean air!
-            ]);
-        }
+        EventImpact::create([
+            'simulation_event_id' => $carFree->id,
+            'quality_metric_id' => $air->id,
+            'impact' => 20 // Better air
+        ]);
+
+        EventImpact::create([
+            'simulation_event_id' => $carFree->id,
+            'quality_metric_id' => $safety->id,
+            'impact' => 10 // Safer streets
+        ]);
     }
 }

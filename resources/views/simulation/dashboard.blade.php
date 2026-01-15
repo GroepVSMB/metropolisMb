@@ -134,6 +134,7 @@
 
                 {{-- KOLOM 2: The Grid --}}
                 <section class="w-full lg:w-2/4 flex flex-col items-center bg-white shadow-sm sm:rounded-lg p-6 relative">
+                    <div id="live-feedback" class="fixed top-28 left-1/2 transform -translate-x-1/2 z-[100] w-auto min-w-[300px] text-center hidden pointer-events-none transition-all duration-200"></div>
                     <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200">
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
@@ -153,7 +154,7 @@
                             @endfor
                         </div>
                     </div>
-                    <div id="live-feedback" class="mt-4 w-full p-3 rounded text-sm font-bold text-center hidden"></div>
+
                     <p class="text-center text-xs text-gray-500 mt-2 italic">
                         Sleep functies naar de kavels. Let op de regels!
                     </p>
@@ -443,7 +444,11 @@
                 cell.classList.add('drag-over-invalid');
                 cell.classList.remove('drag-over-valid');
                 ev.dataTransfer.dropEffect = "none";
-                feedbackBar.innerHTML = `<div class="bg-red-100 text-red-700 border border-red-400 px-4 py-2 rounded animate-pulse">${check.message}</div>`;
+                feedbackBar.innerHTML = `
+                    <div class="inline-block bg-red-100 text-red-700 border-2 border-red-400 px-6 py-3 rounded-lg shadow-2xl font-bold text-sm animate-bounce pointer-events-auto">
+                        ️ ${check.message}
+                    </div>
+                `;
                 feedbackBar.classList.remove('hidden');
             }
         }
@@ -627,7 +632,7 @@
         function executeShowTooltip(cellIndex) {
             // 1. Basic Data Validation
             const funcIndex = gridState[cellIndex];
-            if (!funcIndex || funcIndex === 0) return;
+            // if (!funcIndex || funcIndex === 0) return;
 
             const func = availableFunctions[funcIndex];
             if (!func) return;

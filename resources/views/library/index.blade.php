@@ -63,12 +63,6 @@
                                     </h4>
 
                                     <div class="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                                        <div class="flex items-center text-sm">
-                                            <span class="font-medium text-gray-600">Leefbaarheid:</span>
-                                            <span class="ml-1 font-bold {{ $function->livability_number >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                                {{ $function->livability_number }}
-                                            </span>
-                                        </div>
                                         <span class="text-xs text-blue-500 hover:underline">Details &rarr;</span>
                                     </div>
                                 </div>
@@ -137,13 +131,6 @@
                                         <p class="text-xs text-gray-500 uppercase font-bold">Categorie</p>
                                         {{-- Fixed: matches controller JSON structure (string) --}}
                                         <p class="text-sm font-medium text-gray-900" x-text="activeItem?.category || 'Onbekend'"></p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-gray-500 uppercase font-bold">Leefbaarheid Impact</p>
-                                        {{-- Fixed: matches controller JSON key 'livability' --}}
-                                        <p class="text-lg font-bold"
-                                           :class="activeItem?.livability >= 0 ? 'text-green-600' : 'text-red-600'"
-                                           x-text="activeItem?.livability"></p>
                                     </div>
                                     <div>
                                         <p class="text-xs text-gray-500 uppercase font-bold">Database ID</p>

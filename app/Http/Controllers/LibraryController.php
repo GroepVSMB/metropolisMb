@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\CityFunction;
 use App\Models\QualityMetric;
+use App\Models\FunctionImpact;
 use Illuminate\Http\Request;
 
 class LibraryController extends Controller
@@ -38,7 +39,7 @@ class LibraryController extends Controller
     // 1. MANAGER: List View (Table)
     public function manage()
     {
-        $functions = CityFunction::with('category')->get();
+        $functions = CityFunction::with(['category', 'impacts.qualityMetric'])->get();
         return view('library.manage', compact('functions'));
     }
 
@@ -46,7 +47,8 @@ class LibraryController extends Controller
     public function create()
     {
         $categories = Category::all();
-        return view('library.create', compact('categories'));
+        $metrics = QualityMetric::all(); // Pass metrics for the input fields
+        return view('library.create', compact('categories', 'metrics'));
     }
 // 3. MANAGER: Store Data (Updated for Links)
     public function store(Request $request)
@@ -54,16 +56,29 @@ class LibraryController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
-            'livability_number' => 'required|integer',
-            'image' => 'required|url', // Must be a valid http/https link
+            'image' => 'required|url',
+            'impacts' => 'nullable|array', // New validation
         ]);
 
-        CityFunction::create([
+        $function = CityFunction::create([
             'name' => $request->name,
             'category_id' => $request->category_id,
-            'livability_number' => $request->livability_number,
-            'image' => $request->image, // Save the link directly
+            'image' => $request->image,
+            // 'livability_number' is removed
         ]);
+
+        // Save new impacts
+        if ($request->impacts) {
+            foreach ($request->impacts as $metricId => $score) {
+                if (!is_null($score) && $score != 0) {
+                    FunctionImpact::create([
+                        'city_function_id' => $function->id,
+                        'quality_metric_id' => $metricId,
+                        'impact' => $score,
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('library.manage')->with('success', 'Functie toegevoegd!');
     }
@@ -76,16 +91,30 @@ class LibraryController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
-            'livability_number' => 'required|integer',
             'image' => 'required|url',
+            'impacts' => 'nullable|array',
         ]);
 
         $function->update([
             'name' => $request->name,
             'category_id' => $request->category_id,
-            'livability_number' => $request->livability_number,
             'image' => $request->image,
         ]);
+
+        // Sync Impacts: Delete all old ones, save new ones
+        $function->impacts()->delete();
+
+        if ($request->impacts) {
+            foreach ($request->impacts as $metricId => $score) {
+                if (!is_null($score) && $score != 0) {
+                    FunctionImpact::create([
+                        'city_function_id' => $function->id,
+                        'quality_metric_id' => $metricId,
+                        'impact' => $score,
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('library.manage')->with('success', 'Functie bijgewerkt!');
     }
@@ -93,9 +122,14 @@ class LibraryController extends Controller
     // 4. MANAGER: Show Edit Form
     public function edit($id)
     {
-        $function = CityFunction::findOrFail($id);
+        $function = CityFunction::with('impacts')->findOrFail($id);
         $categories = Category::all();
-        return view('library.edit', compact('function', 'categories'));
+        $metrics = QualityMetric::all();
+
+        // Helper array to pre-fill inputs: [metric_id => impact_value]
+        $currentImpacts = $function->impacts->pluck('impact', 'quality_metric_id')->toArray();
+
+        return view('library.edit', compact('function', 'categories', 'metrics', 'currentImpacts'));
     }
 
     // 6. MANAGER: Delete

@@ -19,8 +19,8 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('library.index')" :active="request()->routeIs('library.*')"
-                                class="border-transparent text-gray-500 hover:text-metro-darkred hover:border-metro-darkred focus:text-metro-darkred focus:border-metro-darkred {{ request()->routeIs('library.*') ? '!border-metro-darkred !text-metro-darkred' : '' }}">
+                    <x-nav-link :href="route('library.index')" :active="request()->routeIs('library.index')"
+                                class="border-transparent text-gray-500 hover:text-metro-darkred hover:border-metro-darkred focus:text-metro-darkred focus:border-metro-darkred {{ request()->routeIs('library.index') ? '!border-metro-darkred !text-metro-darkred' : '' }}">
                         {{ __('Bibliotheek') }}
                     </x-nav-link>
 
@@ -105,7 +105,7 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('library.index')" :active="request()->routeIs('library.*')">
+            <x-responsive-nav-link :href="route('library.index')" :active="request()->routeIs('library.index')">
                 {{ __('Bibliotheek') }}
             </x-responsive-nav-link>
 

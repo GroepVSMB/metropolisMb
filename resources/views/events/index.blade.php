@@ -21,6 +21,7 @@
                         <tr>
                             <th class="p-3">Naam</th>
                             <th class="p-3">Type</th>
+                            <th class="p-3">Categorie</th>
                             <th class="p-3">Duur</th>
                             <th class="p-3">Impacts (op Kwaliteit)</th>
                             <th class="p-3 text-right">Acties</th>
@@ -34,6 +35,18 @@
                                         <span class="px-2 py-1 rounded text-xs {{ $event->type === 'recurring' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700' }}">
                                             {{ $event->type }}
                                         </span>
+                                </td>
+                                <td class="p-3">
+                                    <div class="flex flex-wrap gap-1">
+                                        @forelse($event->categories as $cat)
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border"
+                                                  style="background-color: {{ $cat->color_hex }}20; color: {{ $cat->color_hex }}; border-color: {{ $cat->color_hex }}40;">
+                                                {{ $cat->name }}
+                                            </span>
+                                        @empty
+                                            <span class="text-gray-400 text-xs">-</span>
+                                        @endforelse
+                                    </div>
                                 </td>
                                 <td class="p-3">{{ $event->duration_minutes }} min</td>
                                 <td class="p-3 text-xs text-gray-500">
