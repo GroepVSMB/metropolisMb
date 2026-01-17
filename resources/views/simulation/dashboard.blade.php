@@ -270,16 +270,12 @@
                         </div>
 
                         {{-- VECTOR CONTAINER (Overlay) --}}
-                        <div id="city-vector" class="hidden absolute inset-0 w-full h-full z-10 bg-white/50 cursor-crosshair">
+                        <div id="city-vector" class="hidden absolute inset-0 w-full h-full z-10 bg-white cursor-crosshair">
                             <svg id="vector-svg" width="100%" height="100%" class="w-full h-full">
-                                <defs>
-                                    <pattern id="grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
-                                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e5e7eb" stroke-width="1"/>
-                                    </pattern>
-                                </defs>
-                                <rect width="100%" height="100%" fill="url(#grid-pattern)" />
                                 <g id="vector-layer"></g> {{-- Polygons go here --}}
                                 <g id="drawing-layer"></g> {{-- Active drawing line goes here --}}
+                                {{-- Snap Indicator --}}
+                                <circle id="snap-indicator" r="5" fill="none" stroke="#2563eb" stroke-width="2" class="hidden pointer-events-none" />
                             </svg>
                             
                             {{-- Info Box for Drawing --}}
@@ -465,14 +461,20 @@
             svg.addEventListener('click', (e) => {
                 if(vectorMode !== 'draw') return;
                 const rect = svg.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                const rawX = e.clientX - rect.left;
+                const rawY = e.clientY - rect.top;
                 
+                // Get Snapped Position
+                const snap = getSnapPoint(rawX, rawY);
+                const x = snap ? snap[0] : rawX;
+                const y = snap ? snap[1] : rawY;
+
                 // Check if closing loop (near start)
                 if (drawPoints.length > 2) {
                     const start = drawPoints[0];
+                    // If snapped to start point, OR strictly close
                     const dist = Math.hypot(start[0]-x, start[1]-y);
-                    if (dist < 15) {
+                    if (dist < 15 || (snap && snap[0] === start[0] && snap[1] === start[1])) {
                         finishPolygon();
                         return;
                     }
@@ -483,11 +485,26 @@
             });
 
             svg.addEventListener('mousemove', (e) => {
-                if(vectorMode !== 'draw' || drawPoints.length === 0) return;
+                if(vectorMode !== 'draw') return;
                 const rect = svg.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                renderDrawing([x, y]);
+                const rawX = e.clientX - rect.left;
+                const rawY = e.clientY - rect.top;
+                
+                const snap = getSnapPoint(rawX, rawY);
+                const x = snap ? snap[0] : rawX;
+                const y = snap ? snap[1] : rawY;
+
+                // Update Snap Indicator UI
+                const indicator = document.getElementById('snap-indicator');
+                if (snap) {
+                    indicator.setAttribute('cx', x);
+                    indicator.setAttribute('cy', y);
+                    indicator.classList.remove('hidden');
+                } else {
+                    indicator.classList.add('hidden');
+                }
+
+                if(drawPoints.length > 0) renderDrawing([x, y]);
             });
 
             // Key listener for Escape (cancel draw)
@@ -495,8 +512,37 @@
                 if(e.key === 'Escape' && vectorMode === 'draw') {
                     drawPoints = [];
                     renderDrawing();
+                    document.getElementById('snap-indicator').classList.add('hidden');
                 }
             });
+        }
+
+        function getSnapPoint(x, y) {
+            const threshold = 15;
+            let closest = null;
+            let minStartDist = Infinity;
+
+            // 1. Check Existing Polygons vertices
+            vectorState.forEach(poly => {
+                poly.points.forEach(p => {
+                    const dist = Math.hypot(p[0]-x, p[1]-y);
+                    if (dist < threshold && dist < minStartDist) {
+                        minStartDist = dist;
+                        closest = p;
+                    }
+                });
+            });
+
+            // 2. Check Current Drawing start point (to close loop)
+            if (drawPoints.length > 0) {
+                const start = drawPoints[0];
+                const dist = Math.hypot(start[0]-x, start[1]-y);
+                if (dist < threshold && dist < minStartDist) {
+                    closest = start;
+                }
+            }
+
+            return closest;
         }
 
         function setVectorMode(mode) {
@@ -505,6 +551,7 @@
             const svg = document.getElementById('city-vector');
             const btnDraw = document.getElementById('btn-draw');
             const btnSelect = document.getElementById('btn-select');
+            const snapInd = document.getElementById('snap-indicator');
 
             if (mode === 'draw') {
                 hint.classList.remove('hidden');
@@ -518,6 +565,7 @@
                 renderVectorState();
             } else {
                 hint.classList.add('hidden');
+                if(snapInd) snapInd.classList.add('hidden'); // Hide snap
                 svg.classList.remove('cursor-crosshair');
                 svg.classList.add('cursor-default');
                 drawPoints = [];
