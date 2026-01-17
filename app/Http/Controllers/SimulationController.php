@@ -107,6 +107,7 @@ class SimulationController extends Controller
             'gridState' => 'required|array',
             'gridWidth' => 'nullable|integer|min:2',
             'gridHeight' => 'nullable|integer|min:2',
+            'gridType' => 'nullable|string',
             'scheduleState' => 'nullable|array',
             'currentTick' => 'nullable|integer',
             'status' => 'nullable|string',
@@ -118,6 +119,7 @@ class SimulationController extends Controller
             'grid_state' => $validated['gridState'],
             'grid_width' => $validated['gridWidth'] ?? 4,
             'grid_height' => $validated['gridHeight'] ?? 3,
+            'grid_type' => $validated['gridType'] ?? 'square',
             'schedule_state' => $validated['scheduleState'] ?? [],
             'current_tick' => $validated['currentTick'] ?? 0,
             'status' => $validated['status'] ?? 'paused',
@@ -135,6 +137,7 @@ class SimulationController extends Controller
             'gridState' => 'sometimes|array',
             'gridWidth' => 'sometimes|integer|min:2',
             'gridHeight' => 'sometimes|integer|min:2',
+            'gridType' => 'sometimes|string',
             'scheduleState' => 'sometimes|array',
             'currentTick' => 'sometimes|integer',
             'status' => 'sometimes|string',
@@ -144,6 +147,7 @@ class SimulationController extends Controller
         if (isset($validated['gridState'])) $simulation->grid_state = $validated['gridState'];
         if (isset($validated['gridWidth'])) $simulation->grid_width = $validated['gridWidth'];
         if (isset($validated['gridHeight'])) $simulation->grid_height = $validated['gridHeight'];
+        if (isset($validated['gridType'])) $simulation->grid_type = $validated['gridType'];
         if (isset($validated['scheduleState'])) $simulation->schedule_state = $validated['scheduleState'];
         if (isset($validated['currentTick'])) $simulation->current_tick = $validated['currentTick'];
         if (isset($validated['status'])) $simulation->status = $validated['status'];

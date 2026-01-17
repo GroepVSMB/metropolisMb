@@ -21,6 +21,7 @@ class SimulationFactory extends Factory
             'grid_state' => array_fill(0, 12, 0),
             'grid_width' => 4,
             'grid_height' => 3,
+            'grid_type' => 'square',
             'schedule_state' => [],
             'current_tick' => 0,
             'status' => 'paused',

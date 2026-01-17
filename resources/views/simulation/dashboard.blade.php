@@ -67,6 +67,31 @@
             animation: pulseGlow 2s infinite;
         }
 
+        /* HEXAGONAL STYLES */
+        .hex-grid {
+            display: flex !important;
+            flex-wrap: wrap;
+            padding-bottom: 40px; /* Space for the last offset row */
+        }
+        
+        .hex-cell {
+            width: 100px; /* Fixed width for hex demo */
+            height: 110px;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            margin-bottom: -25px; /* Tighter vertical packing */
+            margin-right: 2px;
+            position: relative;
+        }
+
+        .hex-cell-content {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+
+        /* Offset for Hex Rows */
+        .hex-row-even { margin-left: 51px; } /* Half width + gap */
+
         @keyframes pulseGlow {
             0% { opacity: 0.6; }
             50% { opacity: 1; }
@@ -205,14 +230,21 @@
                     
                     {{-- GRID CONTROLS --}}
                     <div class="w-full flex justify-between items-center mb-2 px-1">
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 items-center">
                             <span class="text-xs font-bold text-gray-500 uppercase tracking-wider self-center mr-2">Grid:</span>
                             <button onclick="modifyGrid(1, 0)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs font-bold transition" title="Kolom Toevoegen">+ Kol</button>
                             <button onclick="modifyGrid(-1, 0)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs font-bold transition" title="Kolom Verwijderen">- Kol</button>
                             <button onclick="modifyGrid(0, 1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs font-bold transition" title="Rij Toevoegen">+ Rij</button>
                             <button onclick="modifyGrid(0, -1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs font-bold transition" title="Rij Verwijderen">- Rij</button>
                         </div>
-                        <span id="grid-size-display" class="text-xs font-mono text-gray-400">4x3</span>
+                        
+                        <div class="flex items-center gap-2">
+                             <select id="grid-type-select" onchange="setGridType(this.value)" class="text-xs border-gray-300 rounded shadow-sm focus:border-metro-darkred focus:ring focus:ring-metro-darkred focus:ring-opacity-50 py-1">
+                                <option value="square">Vierkant (Stad)</option>
+                                <option value="hex">Honingraat (Organisch)</option>
+                            </select>
+                            <span id="grid-size-display" class="text-xs font-mono text-gray-400">4x3</span>
+                        </div>
                     </div>
 
                     <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 overflow-auto">
@@ -330,6 +362,7 @@
         // GRID STATE
         let gridWidth = 4;
         let gridHeight = 3;
+        let gridType = 'square'; // 'square' or 'hex'
         let gridState = Array(gridWidth * gridHeight).fill(0);
         
         let currentDragIndex = null;
@@ -357,15 +390,19 @@
             initPlanner(); // NEW
             updateClockDisplay();
             
-            // Initial Render of Grid (overwriting PHP static loop if needed, or just attaching events)
-            // Ideally we stick to PHP rendered for SEO/Speed, but since this is an app, JS render is fine.
-            // Let's force a JS render to ensure state matches.
+            // Initial Render
             renderGridUI();
             
             calculateMetrics(); // Initial calc
         });
 
         // --- DYNAMIC GRID LOGIC ---
+        function setGridType(type) {
+            gridType = type;
+            renderGridUI();
+            calculateMetrics(); // Neighbors change, so synergy scores might change
+        }
+
         function modifyGrid(dCol, dRow) {
             const newWidth = Math.max(2, gridWidth + dCol); // Min 2x2
             const newHeight = Math.max(2, gridHeight + dRow);
@@ -395,20 +432,48 @@
 
         function renderGridUI() {
             const container = document.getElementById('city-grid');
-            container.style.gridTemplateColumns = `repeat(${gridWidth}, minmax(0, 1fr))`;
-            
-            // Update Display
             document.getElementById('grid-size-display').innerText = `${gridWidth}x${gridHeight}`;
-
+            
+            // RESET
             container.innerHTML = '';
             
+            if (gridType === 'hex') {
+                // HEX LAYOUT
+                container.style.display = 'block'; // Reset Grid Display
+                container.className = 'hex-grid w-full min-h-[400px] overflow-auto';
+                container.style.gridTemplateColumns = ''; // Clear css grid
+            } else {
+                // SQUARE LAYOUT
+                container.style.display = 'grid';
+                container.className = 'grid gap-2 w-full min-h-[400px]';
+                container.style.gridTemplateColumns = `repeat(${gridWidth}, minmax(0, 1fr))`;
+            }
+
             for(let i=0; i < gridState.length; i++) {
                 const funcIndex = gridState[i];
                 const func = availableFunctions[funcIndex] || availableFunctions[0];
+                const row = Math.floor(i / gridWidth);
                 
                 const cell = document.createElement('div');
                 cell.id = `cell-${i}`;
-                cell.className = "bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred aspect-square";
+                
+                if (gridType === 'hex') {
+                    cell.className = "hex-cell bg-white border-0 cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none relative hover:brightness-95";
+                    
+                    // Add content container for centering (because hex uses clip-path)
+                    const content = document.createElement('div');
+                    content.className = 'hex-cell-content';
+                    cell.appendChild(content);
+
+                    // Add margin offset for even rows
+                    if (row % 2 !== 0 && (i % gridWidth === 0)) {
+                         cell.style.marginLeft = '51px'; // Manual Offset for first item in even row
+                    } else {
+                         cell.style.marginLeft = '0px';
+                    }
+                } else {
+                    cell.className = "bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred aspect-square";
+                }
                 
                 // Attach Events
                 cell.onclick = () => handleCellClick(i);
@@ -420,7 +485,14 @@
 
                 // Inner Content
                 if (func.id === 'empty') {
-                    cell.innerText = `Kavel ${i + 1}`;
+                    if (gridType === 'hex') {
+                        // Use the inner container for hex
+                        const content = cell.querySelector('.hex-cell-content');
+                        content.innerText = `${i + 1}`;
+                        cell.style.backgroundColor = '#f3f4f6'; // Grayish
+                    } else {
+                        cell.innerText = `Kavel ${i + 1}`;
+                    }
                 } else {
                     updateCellContent(cell, func);
                 }
@@ -430,13 +502,28 @@
         }
         
         function updateCellContent(cell, func) {
-            cell.innerHTML = '';
-            cell.classList.remove('border-gray-300');
-            cell.classList.add('shadow-sm');
+            // Logic differs slightly for Hex vs Square due to clip-path container
+            let target = cell;
+            if (gridType === 'hex') {
+                 target = cell.querySelector('.hex-cell-content');
+                 cell.style.backgroundColor = 'white'; // Reset
+            } else {
+                 cell.innerHTML = '';
+                 cell.classList.remove('border-gray-300');
+                 cell.classList.add('shadow-sm');
+            }
+            
+            target.innerHTML = '';
+
             if (func.id === 'empty') {
-                 cell.innerText = `Kavel ${parseInt(cell.id.split('-')[1]) + 1}`;
-                 cell.classList.add('border-gray-300');
-                 cell.classList.remove('shadow-sm');
+                 if (gridType === 'hex') {
+                     target.innerText = `${parseInt(cell.id.split('-')[1]) + 1}`;
+                     cell.style.backgroundColor = '#f3f4f6';
+                 } else {
+                     cell.innerText = `Kavel ${parseInt(cell.id.split('-')[1]) + 1}`;
+                     cell.classList.add('border-gray-300');
+                     cell.classList.remove('shadow-sm');
+                 }
                  return;
             }
 
@@ -444,20 +531,27 @@
                 const img = document.createElement('img');
                 img.src = func.image;
                 img.className = 'w-full h-full object-cover absolute top-0 left-0 pointer-events-none';
-                cell.appendChild(img);
+                if(gridType === 'hex') img.style.zIndex = -1; // Behind text
+                
+                // For Hex, we append to cell, not target(content) because content is centered overlay
+                if(gridType === 'hex') cell.appendChild(img);
+                else cell.appendChild(img);
             } else {
-                 // For no-image functions (like Roads maybe?), show color block
                  const block = document.createElement('div');
                  block.className = 'w-full h-full absolute top-0 left-0 pointer-events-none opacity-50';
                  block.style.backgroundColor = func.color_hex;
-                 cell.appendChild(block);
+                 if(gridType === 'hex') cell.appendChild(block);
+                 else cell.appendChild(block);
             }
 
             const span = document.createElement('span');
             span.className = 'font-bold text-[0.7rem] lg:text-sm relative z-10 bg-white/90 px-2 py-0.5 rounded mt-auto mb-1 pointer-events-none shadow-sm';
             span.innerText = func.name;
             span.style.borderBottom = `3px solid ${func.color_hex}`;
-            cell.appendChild(span);
+            
+            // In Hex, add to content wrapper
+            if (gridType === 'hex') target.appendChild(span);
+            else cell.appendChild(span);
         }
 
         // --- PLANNER LOGIC ---
@@ -629,6 +723,7 @@
                 gridState: gridState,
                 gridWidth: gridWidth,
                 gridHeight: gridHeight,
+                gridType: gridType,
                 scheduleState: simState.schedule,
                 currentTick: simState.tick,
                 status: simState.isPlaying ? 'playing' : 'paused',
@@ -715,8 +810,19 @@
             // 0. GRID DIMENSIONS
             if(data.grid_width) gridWidth = parseInt(data.grid_width);
             if(data.grid_height) gridHeight = parseInt(data.grid_height);
+            if(data.grid_type) {
+                gridType = data.grid_type;
+                document.getElementById('grid-type-select').value = gridType;
+            }
 
             // 1. GRID STATE
+            if(data.grid_state && Array.isArray(data.grid_state)) {
+                gridState = data.grid_state;
+                // Re-render Grid
+                renderGridUI();
+            }
+
+            // 2. SCHEDULE & TIME
             if(data.grid_state && Array.isArray(data.grid_state)) {
                 gridState = data.grid_state;
                 // Re-render Grid
@@ -1322,13 +1428,69 @@
             let neighbors = [];
             const col = i % gridWidth;
             const row = Math.floor(i / gridWidth);
-            
-            if (row > 0) neighbors.push(i - gridWidth); // Top
-            if (row < gridHeight - 1) neighbors.push(i + gridWidth); // Bottom
-            if (col > 0) neighbors.push(i - 1); // Left
-            if (col < gridWidth - 1) neighbors.push(i + 1); // Right
+
+            if (gridType === 'hex') {
+                const isOddRow = (row % 2 !== 0);
+                // Potential offsets [dCol, dRow]
+                let offsets;
+                if (isOddRow) {
+                    offsets = [
+                        [0, -1], [1, -1], // Top Left, Top Right
+                        [-1, 0], [1, 0],  // Left, Right
+                        [0, 1], [1, 1]    // Bottom Left, Bottom Right
+                    ];
+                } else {
+                    offsets = [
+                        [-1, -1], [0, -1], // Top Left, Top Right
+                        [-1, 0], [1, 0],   // Left, Right
+                        [-1, 1], [0, 1]    // Bottom Left, Bottom Right
+                    ];
+                }
+
+                offsets.forEach(([dc, dr]) => {
+                    const nc = col + dc;
+                    const nr = row + dr;
+                    // Check Bounds
+                    if (nc >= 0 && nc < gridWidth && nr >= 0 && nr < gridHeight) {
+                        neighbors.push(nr * gridWidth + nc);
+                    }
+                });
+            } else {
+                // SQUARE (Moore Neighborhood - 8 neighbors or 4? Standard is usually 8 for diagonal, but strict adjacency is 4)
+                // Existing logic seemed to check strict adjacency (Top, Bot, Left, Right). 
+                // Let's stick to strict 4 for logic checks (Rules), but tooltip uses 8.
+                // Wait, previous getNeighbors was 4. getSurroundingIndices was 8.
+                
+                // Keep getNeighbors as 4 (Von Neumann) for Rules
+                if (row > 0) neighbors.push(i - gridWidth); // Top
+                if (row < gridHeight - 1) neighbors.push(i + gridWidth); // Bottom
+                if (col > 0) neighbors.push(i - 1); // Left
+                if (col < gridWidth - 1) neighbors.push(i + 1); // Right
+            }
             
             return neighbors;
+        }
+
+        // Helper: Vind alle omliggende cellen voor Tooltip (Synergy)
+        function getSurroundingIndices(index) {
+             // For Hex, Synergy neighbors are the same as Adjacency neighbors (6)
+             if (gridType === 'hex') {
+                 return getNeighbors(index);
+             }
+
+             // For Square, Synergy usually includes Diagonals (8)
+             const row = Math.floor(index / gridWidth);
+             const col = index % gridWidth;
+             let indices = [];
+             for (let r = row - 1; r <= row + 1; r++) {
+                for (let c = col - 1; c <= col + 1; c++) {
+                    if (r >= 0 && r < gridHeight && c >= 0 && c < gridWidth) {
+                        const neighborIndex = r * gridWidth + c;
+                        if (neighborIndex !== index) indices.push(neighborIndex);
+                    }
+                }
+            }
+            return indices;
         }
 
         function allowDrop(ev, cellIndex) {

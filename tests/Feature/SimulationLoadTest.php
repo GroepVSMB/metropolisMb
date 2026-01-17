@@ -31,6 +31,9 @@ class SimulationLoadTest extends TestCase
         $simulation = Simulation::create([
             'name' => 'Load Test Sim',
             'grid_state' => [1, 2, 3],
+            'grid_width' => 3,
+            'grid_height' => 1,
+            'grid_type' => 'hex',
             'schedule_state' => [['id' => 1, 'name' => 'Event A']],
             'current_tick' => 500,
             'status' => 'paused',
@@ -42,6 +45,7 @@ class SimulationLoadTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson([
             'name' => 'Load Test Sim',
+            'grid_type' => 'hex',
             'current_tick' => 500
         ]);
         // Verify JSON casting
