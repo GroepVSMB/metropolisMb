@@ -259,6 +259,13 @@
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
                             Selecteren
                         </button>
+                        
+                        {{-- Snap Toggle --}}
+                        <button id="btn-snap" onclick="toggleSnap()" class="bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200 transition shadow-sm flex items-center ml-2">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                            Grid Snap: AAN
+                        </button>
+
                         <button onclick="clearVector()" class="bg-red-100 text-red-700 border border-red-200 px-3 py-1 rounded text-xs font-bold hover:bg-red-200 transition ml-auto">Alles Wissen</button>
                     </div>
 
@@ -517,12 +524,30 @@
             });
         }
 
+        
+        let snapEnabled = true; // Default ON
+
+        function toggleSnap() {
+            snapEnabled = !snapEnabled;
+            const btn = document.getElementById('btn-snap');
+            if(snapEnabled) {
+                btn.classList.add('bg-blue-100', 'text-blue-700', 'border-blue-200');
+                btn.classList.remove('bg-gray-100', 'text-gray-500', 'border-gray-200');
+                btn.innerText = 'Grid Snap: AAN';
+            } else {
+                btn.classList.remove('bg-blue-100', 'text-blue-700', 'border-blue-200');
+                btn.classList.add('bg-gray-100', 'text-gray-500', 'border-gray-200');
+                btn.innerText = 'Grid Snap: UIT';
+            }
+        }
+
         function getSnapPoint(x, y) {
             const threshold = 15;
+            const gridSize = 20; // Virtual Grid Size
             let closest = null;
             let minStartDist = Infinity;
 
-            // 1. Check Existing Polygons vertices
+            // 1. Check Existing Polygons VERTICES
             vectorState.forEach(poly => {
                 poly.points.forEach(p => {
                     const dist = Math.hypot(p[0]-x, p[1]-y);
@@ -538,11 +563,54 @@
                 const start = drawPoints[0];
                 const dist = Math.hypot(start[0]-x, start[1]-y);
                 if (dist < threshold && dist < minStartDist) {
+                    minStartDist = dist;
                     closest = start;
                 }
             }
 
+            // If we found a vertex, return it (Vertex priority)
+            if (closest) return closest;
+
+            // 3. Check EDGES (Snap to side of existing kavel)
+            // Iterate all lines in all polygons
+            vectorState.forEach(poly => {
+                for (let i = 0; i < poly.points.length; i++) {
+                    const p1 = poly.points[i];
+                    const p2 = poly.points[(i + 1) % poly.points.length]; // Close loop
+                    
+                    const proj = projectPointOnSegment(x, y, p1[0], p1[1], p2[0], p2[1]);
+                    if (proj) {
+                        const dist = Math.hypot(proj[0]-x, proj[1]-y);
+                        if (dist < threshold && dist < minStartDist) {
+                            minStartDist = dist;
+                            closest = proj;
+                        }
+                    }
+                }
+            });
+
+            if (closest) return closest;
+
+            // 4. Check Virtual GRID (if enabled)
+            if (snapEnabled) {
+                const gx = Math.round(x / gridSize) * gridSize;
+                const gy = Math.round(y / gridSize) * gridSize;
+                const dist = Math.hypot(gx-x, gy-y);
+                if (dist < threshold) {
+                    return [gx, gy];
+                }
+            }
+
             return closest;
+        }
+
+        function projectPointOnSegment(px, py, ax, ay, bx, by) {
+            const atob = { x: bx - ax, y: by - ay };
+            const atop = { x: px - ax, y: py - ay };
+            const len2 = atob.x * atob.x + atob.y * atob.y;
+            let dot = atop.x * atob.x + atop.y * atob.y;
+            let t = Math.min(1, Math.max(0, dot / len2));
+            return [ax + atob.x * t, ay + atob.y * t];
         }
 
         function setVectorMode(mode) {
