@@ -134,7 +134,7 @@
                                         @foreach($catFunctions as $function)
                                             <li draggable="true"
                                                 ondragstart="drag(event, {{ $function['id'] }})"
-                                                onmousedown="acknowledgeFunction({{ $function['id'] }})"
+                                                onmousedown="acknowledgeFunction({{ $function['id'] }}); assignFunctionToSelectedVector({{ $function['id'] }})"
                                                 class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative">
 
                                                 @if(isset($function['is_new']) && $function['is_new'])
@@ -242,15 +242,58 @@
                              <select id="grid-type-select" onchange="setGridType(this.value)" class="text-xs border-gray-300 rounded shadow-sm focus:border-metro-darkred focus:ring focus:ring-metro-darkred focus:ring-opacity-50 py-1">
                                 <option value="square">Vierkant (Stad)</option>
                                 <option value="hex">Honingraat (Organisch)</option>
+                                <option value="vector">Vrije Tekening (Vector)</option>
                             </select>
                             <span id="grid-size-display" class="text-xs font-mono text-gray-400">4x3</span>
                         </div>
                     </div>
+                    
+                    {{-- VECTOR CONTROLS (Hidden by default) --}}
+                    <div id="vector-controls" class="hidden w-full flex gap-2 mb-2 px-1 justify-center bg-yellow-50 p-2 rounded border border-yellow-200">
+                        <span class="text-xs font-bold text-yellow-800 uppercase tracking-wider self-center">Modus:</span>
+                        <button id="btn-draw" onclick="setVectorMode('draw')" class="bg-white border border-gray-300 text-gray-700 px-3 py-1 rounded text-xs font-bold hover:bg-metro-darkred hover:text-white transition shadow-sm flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            Tekenen
+                        </button>
+                        <button id="btn-select" onclick="setVectorMode('select')" class="bg-metro-darkred text-white border border-metro-darkred px-3 py-1 rounded text-xs font-bold shadow-sm flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                            Selecteren
+                        </button>
+                        <button onclick="clearVector()" class="bg-red-100 text-red-700 border border-red-200 px-3 py-1 rounded text-xs font-bold hover:bg-red-200 transition ml-auto">Alles Wissen</button>
+                    </div>
 
-                    <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 overflow-auto">
+                    <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 overflow-auto relative">
+                        
+                        {{-- GRID CONTAINER --}}
                         <div id="city-grid" class="grid gap-2 w-full min-h-[400px]" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
-                            @for($i = 0; $i < 12; $i++)
-                                <div id="cell-{{ $i }}"
+                            {{-- JS Fills this --}}
+                        </div>
+
+                        {{-- VECTOR CONTAINER (Overlay) --}}
+                        <div id="city-vector" class="hidden absolute inset-0 w-full h-full z-10 bg-white/50 cursor-crosshair">
+                            <svg id="vector-svg" width="100%" height="100%" class="w-full h-full">
+                                <defs>
+                                    <pattern id="grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#grid-pattern)" />
+                                <g id="vector-layer"></g> {{-- Polygons go here --}}
+                                <g id="drawing-layer"></g> {{-- Active drawing line goes here --}}
+                            </svg>
+                            
+                            {{-- Info Box for Drawing --}}
+                            <div id="drawing-hint" class="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded pointer-events-none hidden">
+                                Klik om punten te plaatsen
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <p class="text-center text-xs text-gray-500 mt-2 italic" id="instruction-text">
+                        Sleep functies naar de kavels. Let op de regels!
+                    </p>
+                </section>
                                      onclick="handleCellClick({{ $i }})"
                                      ondrop="drop(event, {{ $i }})"
                                      ondragover="allowDrop(event, {{ $i }})"
@@ -362,8 +405,14 @@
         // GRID STATE
         let gridWidth = 4;
         let gridHeight = 3;
-        let gridType = 'square'; // 'square' or 'hex'
+        let gridType = 'square'; // 'square', 'hex', 'vector'
         let gridState = Array(gridWidth * gridHeight).fill(0);
+        
+        // VECTOR STATE
+        let vectorState = []; // [{id: 1, points: [[x,y],...], funcIndex: 0}]
+        let vectorMode = 'select'; // 'draw', 'select'
+        let drawPoints = [];
+        let selectedPolyId = null;
         
         let currentDragIndex = null;
         let activeEvents = [];
@@ -388,6 +437,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initTimeline();
             initPlanner(); // NEW
+            initVector(); // NEW
             updateClockDisplay();
             
             // Initial Render
@@ -399,8 +449,261 @@
         // --- DYNAMIC GRID LOGIC ---
         function setGridType(type) {
             gridType = type;
-            renderGridUI();
-            calculateMetrics(); // Neighbors change, so synergy scores might change
+            
+            const vectorControls = document.getElementById('vector-controls');
+            const cityVector = document.getElementById('city-vector');
+            const cityGrid = document.getElementById('city-grid');
+            const gridSizeDisplay = document.getElementById('grid-size-display');
+            const instrText = document.getElementById('instruction-text');
+
+            if (type === 'vector') {
+                // VECTOR MODE
+                vectorControls.classList.remove('hidden');
+                cityVector.classList.remove('hidden');
+                cityGrid.classList.add('hidden');
+                gridSizeDisplay.classList.add('hidden');
+                instrText.innerText = "Teken kavels en klik erop om een functie toe te wijzen.";
+                renderVectorState();
+            } else {
+                // GRID/HEX MODE
+                vectorControls.classList.add('hidden');
+                cityVector.classList.add('hidden');
+                cityGrid.classList.remove('hidden');
+                gridSizeDisplay.classList.remove('hidden');
+                instrText.innerText = "Sleep functies naar de kavels. Let op de regels!";
+                renderGridUI();
+            }
+
+            calculateMetrics(); 
+        }
+
+        // --- VECTOR LOGIC ---
+        function initVector() {
+            const svg = document.getElementById('vector-svg');
+            
+            svg.addEventListener('click', (e) => {
+                if(vectorMode !== 'draw') return;
+                const rect = svg.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Check if closing loop (near start)
+                if (drawPoints.length > 2) {
+                    const start = drawPoints[0];
+                    const dist = Math.hypot(start[0]-x, start[1]-y);
+                    if (dist < 15) {
+                        finishPolygon();
+                        return;
+                    }
+                }
+                
+                drawPoints.push([x, y]);
+                renderDrawing();
+            });
+
+            svg.addEventListener('mousemove', (e) => {
+                if(vectorMode !== 'draw' || drawPoints.length === 0) return;
+                const rect = svg.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                renderDrawing([x, y]);
+            });
+
+            // Key listener for Escape (cancel draw)
+            document.addEventListener('keydown', (e) => {
+                if(e.key === 'Escape' && vectorMode === 'draw') {
+                    drawPoints = [];
+                    renderDrawing();
+                }
+            });
+        }
+
+        function setVectorMode(mode) {
+            vectorMode = mode;
+            const hint = document.getElementById('drawing-hint');
+            const svg = document.getElementById('city-vector');
+            const btnDraw = document.getElementById('btn-draw');
+            const btnSelect = document.getElementById('btn-select');
+
+            if (mode === 'draw') {
+                hint.classList.remove('hidden');
+                svg.classList.add('cursor-crosshair');
+                svg.classList.remove('cursor-default');
+                btnDraw.classList.add('bg-metro-darkred', 'text-white', 'border-metro-darkred');
+                btnDraw.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+                btnSelect.classList.remove('bg-metro-darkred', 'text-white', 'border-metro-darkred');
+                btnSelect.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+                selectedPolyId = null;
+                renderVectorState();
+            } else {
+                hint.classList.add('hidden');
+                svg.classList.remove('cursor-crosshair');
+                svg.classList.add('cursor-default');
+                drawPoints = [];
+                renderDrawing();
+                btnSelect.classList.add('bg-metro-darkred', 'text-white', 'border-metro-darkred');
+                btnSelect.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+                btnDraw.classList.remove('bg-metro-darkred', 'text-white', 'border-metro-darkred');
+                btnDraw.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+            }
+        }
+
+        function renderDrawing(mousePos = null) {
+            const layer = document.getElementById('drawing-layer');
+            layer.innerHTML = '';
+            
+            if (drawPoints.length === 0) return;
+
+            // Draw Lines
+            let pathD = `M ${drawPoints[0][0]} ${drawPoints[0][1]}`;
+            for(let i=1; i<drawPoints.length; i++) {
+                pathD += ` L ${drawPoints[i][0]} ${drawPoints[i][1]}`;
+            }
+            
+            if (mousePos) {
+                pathD += ` L ${mousePos[0]} ${mousePos[1]}`;
+            }
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", pathD);
+            path.setAttribute("stroke", "#ef4444");
+            path.setAttribute("stroke-width", "2");
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke-dasharray", "4");
+            layer.appendChild(path);
+
+            // Draw Points
+            drawPoints.forEach((p, i) => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", p[0]);
+                circle.setAttribute("cy", p[1]);
+                circle.setAttribute("r", i === 0 ? "5" : "3");
+                circle.setAttribute("fill", i === 0 ? "#ef4444" : "#fff");
+                circle.setAttribute("stroke", "#ef4444");
+                layer.appendChild(circle);
+            });
+        }
+
+        function finishPolygon() {
+            if (drawPoints.length < 3) return;
+
+            const newId = Date.now();
+            vectorState.push({
+                id: newId,
+                points: [...drawPoints],
+                funcIndex: 0, // Default: Empty
+                poly: null // Placeholder for DOM ref (not stored)
+            });
+
+            drawPoints = [];
+            renderDrawing();
+            renderVectorState();
+            
+            // Auto-select and prompt
+            handlePolyClick(newId);
+        }
+
+        function renderVectorState() {
+            const layer = document.getElementById('vector-layer');
+            layer.innerHTML = '';
+
+            vectorState.forEach(item => {
+                const pointsStr = item.points.map(p => p.join(',')).join(' ');
+                const func = availableFunctions[item.funcIndex] || availableFunctions[0];
+                
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                g.setAttribute("cursor", "pointer");
+                g.onclick = (e) => { e.stopPropagation(); handlePolyClick(item.id); };
+
+                // Polygon
+                const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                poly.setAttribute("points", pointsStr);
+                poly.setAttribute("fill", func.color_hex);
+                poly.setAttribute("fill-opacity", "0.6");
+                poly.setAttribute("stroke", selectedPolyId === item.id ? "#ef4444" : "#666");
+                poly.setAttribute("stroke-width", selectedPolyId === item.id ? "3" : "1");
+                g.appendChild(poly);
+
+                // Text Label (Centroid)
+                const center = getCentroid(item.points);
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", center[0]);
+                text.setAttribute("y", center[1]);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dominant-baseline", "middle");
+                text.setAttribute("font-size", "10");
+                text.setAttribute("fill", "#000");
+                text.setAttribute("font-weight", "bold");
+                text.setAttribute("pointer-events", "none");
+                text.textContent = func.name;
+                g.appendChild(text);
+
+                // Image (if available, clipped)
+                // This is complex in SVG without defs/clipPath per poly. 
+                // For MVP, we stick to color + label.
+
+                layer.appendChild(g);
+            });
+        }
+
+        function getCentroid(points) {
+            let x = 0, y = 0;
+            points.forEach(p => { x += p[0]; y += p[1]; });
+            return [x / points.length, y / points.length];
+        }
+
+        function handlePolyClick(id) {
+            if (vectorMode === 'draw') return;
+            selectedPolyId = id;
+            renderVectorState();
+            
+            // Show Function Selector Prompt
+            // For simplicity, we can reuse the existing 'availableFunctions' in a modal or simple prompt
+            // But dragging is requested.
+            // SVG doesn't support native HTML5 drag-drop easily.
+            // Let's open a simple modal or use a context menu?
+            // "I want to start by clicking and a line starts drawing" - done.
+            // "Outline my own kavels and assign their purpose" - assign part needs UI.
+            
+            // Let's auto-select the item. Then clicking a sidebar item assigns it?
+            // "Sleep functies" is standard. Dragging to SVG is hard.
+            // Let's implement: Select Polygon -> Click Sidebar Item -> Assigns Function.
+            document.getElementById('instruction-text').innerText = "Kavel geselecteerd! Klik nu op een functie in de zijbalk om deze toe te wijzen.";
+        }
+
+        function clearVector() {
+            if(confirm("Alle tekeningen wissen?")) {
+                vectorState = [];
+                renderVectorState();
+                calculateMetrics();
+            }
+        }
+
+        // MODIFY SIDEBAR CLICK TO SUPPORT VECTOR ASSIGNMENT
+        // We need to hook into the sidebar item clicks.
+        // Currently they have `ondragstart` and `onmousedown`.
+        // I'll add a global handler or modify the existing `onmousedown`.
+        // Actually, onmousedown calls `acknowledgeFunction`. I should extend that.
+
+        function assignFunctionToSelectedVector(funcId) {
+            if (gridType !== 'vector' || !selectedPolyId) return;
+            
+            const polyIndex = vectorState.findIndex(p => p.id === selectedPolyId);
+            if (polyIndex === -1) return;
+
+            // Find function index in availableFunctions array
+            // funcId is the DB ID (int), availableFunctions has them.
+            // Wait, availableFunctions is an array of objects.
+            // We need the INDEX in that array for consistency with gridState logic (which stores index).
+            // Actually, storing ID is safer, but existing code uses index.
+            
+            const funcIndex = availableFunctions.findIndex(f => f.id == funcId);
+            if (funcIndex !== -1) {
+                vectorState[polyIndex].funcIndex = funcIndex;
+                renderVectorState();
+                calculateMetrics();
+                playSynthSound('success');
+            }
         }
 
         function modifyGrid(dCol, dRow) {
@@ -721,6 +1024,7 @@
             const payload = {
                 name: name,
                 gridState: gridState,
+                vectorState: vectorState,
                 gridWidth: gridWidth,
                 gridHeight: gridHeight,
                 gridType: gridType,
@@ -811,22 +1115,20 @@
             if(data.grid_width) gridWidth = parseInt(data.grid_width);
             if(data.grid_height) gridHeight = parseInt(data.grid_height);
             if(data.grid_type) {
-                gridType = data.grid_type;
-                document.getElementById('grid-type-select').value = gridType;
+                setGridType(data.grid_type);
+                document.getElementById('grid-type-select').value = data.grid_type;
             }
 
             // 1. GRID STATE
             if(data.grid_state && Array.isArray(data.grid_state)) {
                 gridState = data.grid_state;
-                // Re-render Grid
-                renderGridUI();
+                if (gridType !== 'vector') renderGridUI();
             }
 
-            // 2. SCHEDULE & TIME
-            if(data.grid_state && Array.isArray(data.grid_state)) {
-                gridState = data.grid_state;
-                // Re-render Grid
-                renderGridUI();
+            // 1.5 VECTOR STATE
+            if(data.vector_state && Array.isArray(data.vector_state)) {
+                vectorState = data.vector_state;
+                if (gridType === 'vector') renderVectorState();
             }
 
             // 2. SCHEDULE & TIME
@@ -845,10 +1147,8 @@
             // 3. REFRESH EVERYTHING
             updateClockDisplay();
             renderPlannerSchedule();
-            // initTimeline call inside updateClockDisplay via renderTimelineEvents check? No, explicit call.
-            // Actually updateClockDisplay calls updateTimelineUI, but we need to re-render markers.
-            renderTimelineEvents(); // Force initial render
-            calculateMetrics(); // Re-calculate scores based on new grid
+            renderTimelineEvents(); 
+            calculateMetrics(); 
             
             // Optional: Pause on load
             setPlayState(false);

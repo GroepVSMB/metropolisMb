@@ -31,9 +31,10 @@ class SimulationLoadTest extends TestCase
         $simulation = Simulation::create([
             'name' => 'Load Test Sim',
             'grid_state' => [1, 2, 3],
+            'vector_state' => [['id' => 99, 'points' => [[0,0],[10,10],[0,10]]]],
             'grid_width' => 3,
             'grid_height' => 1,
-            'grid_type' => 'hex',
+            'grid_type' => 'vector',
             'schedule_state' => [['id' => 1, 'name' => 'Event A']],
             'current_tick' => 500,
             'status' => 'paused',
@@ -45,12 +46,14 @@ class SimulationLoadTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson([
             'name' => 'Load Test Sim',
-            'grid_type' => 'hex',
+            'grid_type' => 'vector',
             'current_tick' => 500
         ]);
         // Verify JSON casting
         $data = $response->json();
         $this->assertIsArray($data['grid_state']);
+        $this->assertIsArray($data['vector_state']);
+        $this->assertEquals(99, $data['vector_state'][0]['id']);
         $this->assertIsArray($data['schedule_state']);
         $this->assertEquals('Event A', $data['schedule_state'][0]['name']);
     }

@@ -104,7 +104,8 @@ class SimulationController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'gridState' => 'required|array',
+            'gridState' => 'nullable|array',
+            'vectorState' => 'nullable|array', // NEW
             'gridWidth' => 'nullable|integer|min:2',
             'gridHeight' => 'nullable|integer|min:2',
             'gridType' => 'nullable|string',
@@ -116,7 +117,8 @@ class SimulationController extends Controller
 
         $simulation = Simulation::create([
             'name' => $validated['name'],
-            'grid_state' => $validated['gridState'],
+            'grid_state' => $validated['gridState'] ?? [],
+            'vector_state' => $validated['vectorState'] ?? [], // NEW
             'grid_width' => $validated['gridWidth'] ?? 4,
             'grid_height' => $validated['gridHeight'] ?? 3,
             'grid_type' => $validated['gridType'] ?? 'square',
@@ -135,6 +137,7 @@ class SimulationController extends Controller
         
         $validated = $request->validate([
             'gridState' => 'sometimes|array',
+            'vectorState' => 'sometimes|array', // NEW
             'gridWidth' => 'sometimes|integer|min:2',
             'gridHeight' => 'sometimes|integer|min:2',
             'gridType' => 'sometimes|string',
@@ -145,6 +148,7 @@ class SimulationController extends Controller
         ]);
 
         if (isset($validated['gridState'])) $simulation->grid_state = $validated['gridState'];
+        if (isset($validated['vectorState'])) $simulation->vector_state = $validated['vectorState']; // NEW
         if (isset($validated['gridWidth'])) $simulation->grid_width = $validated['gridWidth'];
         if (isset($validated['gridHeight'])) $simulation->grid_height = $validated['gridHeight'];
         if (isset($validated['gridType'])) $simulation->grid_type = $validated['gridType'];
