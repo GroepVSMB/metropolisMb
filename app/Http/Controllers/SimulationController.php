@@ -41,14 +41,18 @@ class SimulationController extends Controller
         // --- 4. EVENTS (Existing Logic) ---
         // Note: You might want to update events to use QualityMetrics later too,
         // but for now we keep this to prevent breaking your current event logic.
-        $events = SimulationEvent::with(['impacts.qualityMetric'])->get();
+        $events = SimulationEvent::with(['impacts.qualityMetric', 'categories'])->get();
 
         // Map events to a clean JSON structure
         $jsEventsData = $events->map(function($e) {
             return [
                 'id' => $e->id,
                 'name' => $e->name,
+                'type' => $e->type, // one_off, recurring
                 'duration' => $e->duration_minutes,
+                'recurrence' => $e->recurrence_interval_minutes,
+                'start_minute' => $e->start_minute,
+                'categories' => $e->categories->pluck('name')->toArray(), // Array of category names
                 'impacts' => $e->impacts->map(function($i) {
                     return [
                         // Ensure this matches your Event logic (Category vs QualityMetric)
@@ -101,20 +105,51 @@ class SimulationController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'gridState' => 'required|array',
+            'scheduleState' => 'nullable|array', // NEW
+            'currentTick' => 'nullable|integer',
+            'status' => 'nullable|string',
+            'speed' => 'nullable|integer'
         ]);
 
         $simulation = Simulation::create([
             'name' => $validated['name'],
-            'grid_state' => $validated['gridState']
+            'grid_state' => $validated['gridState'],
+            'schedule_state' => $validated['scheduleState'] ?? [], // NEW
+            'current_tick' => $validated['currentTick'] ?? 0,
+            'status' => $validated['status'] ?? 'paused',
+            'speed' => $validated['speed'] ?? 1
         ]);
 
         return response()->json(['message' => 'Opgeslagen!', 'simulation' => $simulation]);
     }
 
+    public function update(Request $request, $id)
+    {
+        $simulation = Simulation::findOrFail($id);
+        
+        $validated = $request->validate([
+            'gridState' => 'sometimes|array',
+            'scheduleState' => 'sometimes|array', // NEW
+            'currentTick' => 'sometimes|integer',
+            'status' => 'sometimes|string',
+            'speed' => 'sometimes|integer'
+        ]);
+
+        if (isset($validated['gridState'])) $simulation->grid_state = $validated['gridState'];
+        if (isset($validated['scheduleState'])) $simulation->schedule_state = $validated['scheduleState']; // NEW
+        if (isset($validated['currentTick'])) $simulation->current_tick = $validated['currentTick'];
+        if (isset($validated['status'])) $simulation->status = $validated['status'];
+        if (isset($validated['speed'])) $simulation->speed = $validated['speed'];
+        
+        $simulation->save();
+
+        return response()->json(['message' => 'Bijgewerkt!', 'simulation' => $simulation]);
+    }
+
     public function show($id)
     {
         $simulation = Simulation::findOrFail($id);
-        return response()->json(['gridState' => $simulation->grid_state]);
+        return response()->json($simulation);
     }
 
     public function destroy($id)

@@ -2,13 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory; // NEW
 use Illuminate\Database\Eloquent\Model;
 
 class Simulation extends Model
 {
-    protected $fillable = ['name', 'grid_state'];
+    use HasFactory; // NEW
+
+    protected $fillable = ['name', 'grid_state', 'schedule_state', 'current_tick', 'status', 'speed'];
 
     protected $casts = [
         'grid_state' => 'array', // Auto-convert JSON to array
+        'schedule_state' => 'array',
     ];
+
+    public function events()
+    {
+        return $this->hasMany(SimulationEvent::class);
+    }
 }

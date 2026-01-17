@@ -68,8 +68,16 @@ Route::middleware(['auth', 'verified', 'role:manager'])->group(function () {
 Route::middleware(['auth', 'role:planner'])->group(function () {
     // If you haven't created PlannerController yet, change this back to a closure.
     Route::get('/simulation', [SimulationController::class, 'index'])->name('simulation.dashboard');
+    
     // NEW: Acknowledgement Route
     Route::post('/simulation/acknowledge/{id}', [SimulationController::class, 'acknowledgeFunction'])->name('simulation.acknowledge');
+
+    // Simulation API Routes
+    Route::get('/simulations/list', [SimulationController::class, 'list'])->name('simulation.list');
+    Route::post('/simulations/store', [SimulationController::class, 'store'])->name('simulation.store');
+    Route::put('/simulations/{id}', [SimulationController::class, 'update'])->name('simulation.update');
+    Route::get('/simulations/{id}', [SimulationController::class, 'show'])->name('simulation.show');
+    Route::delete('/simulations/{id}', [SimulationController::class, 'destroy'])->name('simulation.destroy');
 
     // event
     Route::resource('events', EventController::class);

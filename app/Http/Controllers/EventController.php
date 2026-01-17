@@ -32,6 +32,8 @@ class EventController extends Controller
             'categories.*' => 'exists:categories,id', // Verify IDs
             'type' => 'required|in:one_off,recurring',
             'duration_minutes' => 'required|integer|min:1',
+            'recurrence_interval_minutes' => 'nullable|integer|min:1',
+            'start_minute' => 'nullable|integer|min:0',
             'impacts' => 'nullable|array',
         ]);
 
@@ -40,6 +42,7 @@ class EventController extends Controller
             'type' => $request->type,
             'duration_minutes' => $request->duration_minutes,
             'recurrence_interval_minutes' => $request->recurrence_interval_minutes ?? null,
+            'start_minute' => $request->start_minute ?? 0,
         ]);
 
         // Save Multiple Categories
@@ -72,6 +75,8 @@ class EventController extends Controller
             'categories.*' => 'exists:categories,id',
             'type' => 'required|in:one_off,recurring',
             'duration_minutes' => 'required|integer|min:1',
+            'recurrence_interval_minutes' => 'nullable|integer|min:1',
+            'start_minute' => 'nullable|integer|min:0',
             'impacts' => 'nullable|array',
         ]);
 
@@ -80,6 +85,7 @@ class EventController extends Controller
             'type' => $request->type,
             'duration_minutes' => $request->duration_minutes,
             'recurrence_interval_minutes' => $request->recurrence_interval_minutes ?? null,
+            'start_minute' => $request->start_minute ?? 0,
         ]);
 
         // Sync Multiple Categories

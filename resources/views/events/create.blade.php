@@ -27,6 +27,10 @@
                             <input type="number" name="duration_minutes" value="60" required class="w-full border-gray-300 rounded shadow-sm">
                         </div>
                         <div>
+                            <label class="block font-medium text-sm text-gray-700">Start Minuut (offset)</label>
+                            <input type="number" name="start_minute" value="0" class="w-full border-gray-300 rounded shadow-sm" placeholder="Bijv. 0">
+                        </div>
+                        <div>
                             <label class="block font-medium text-sm text-gray-700">Herhaal Interval (optioneel, min)</label>
                             <input type="number" name="recurrence_interval_minutes" class="w-full border-gray-300 rounded shadow-sm">
                         </div>

@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\QualityMetric;
+use Illuminate\Support\Facades\DB;
 
 class QualityMetricSeeder extends Seeder
 {
@@ -12,10 +13,16 @@ class QualityMetricSeeder extends Seeder
      */
     public function run()
     {
-        \App\Models\QualityMetric::create(['name' => 'Air Quality']);
-        \App\Models\QualityMetric::create(['name' => 'Noise Pollution']); // Note: Negative impact usually good here? Or keep consistent (Positive = Good)
-        \App\Models\QualityMetric::create(['name' => 'Traffic Flow']);
-        \App\Models\QualityMetric::create(['name' => 'Housing Value']);
-        \App\Models\QualityMetric::create(['name' => 'Safety']);
+        // Disable foreign keys to allow truncation
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        QualityMetric::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        // Insert Dutch Metrics
+        QualityMetric::create(['name' => 'Luchtkwaliteit']);
+        QualityMetric::create(['name' => 'Geluidshinder']); 
+        QualityMetric::create(['name' => 'Verkeersdoorstroming']);
+        QualityMetric::create(['name' => 'Woningwaarde']);
+        QualityMetric::create(['name' => 'Veiligheid']);
     }
 }
