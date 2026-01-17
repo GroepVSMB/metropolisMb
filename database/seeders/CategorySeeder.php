@@ -44,6 +44,12 @@ class CategorySeeder extends Seeder
                 'color_hex' => '#be1e2d', // Metro Red
                 'text_color' => '#ffffff',
                 'created_at' => now(), 'updated_at' => now()
+            ],
+            [
+                'name' => 'Infrastructuur',
+                'color_hex' => '#333333', // Dark Gray
+                'text_color' => '#ffffff',
+                'created_at' => now(), 'updated_at' => now()
             ]
         ]);
     }

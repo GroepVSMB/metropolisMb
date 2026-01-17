@@ -25,6 +25,7 @@ class CityFunctionSeeder extends Seeder
         $werken = Category::where('name', 'Industrie')->first()->id ?? 3;
         $dienst = Category::where('name', 'Dienst')->first()->id ?? 4;
         $veiligheid = Category::where('name', 'Veiligheid')->first()->id ?? 5;
+        $infrastructuur = Category::where('name', 'Infrastructuur')->first()->id ?? 6;
 
         // 3. Fetch Metrics (Using firstOrCreate to PREVENT CRASHES)
         // This ensures that if the metric is missing, it gets created right here.
@@ -37,6 +38,16 @@ class CityFunctionSeeder extends Seeder
 
         // 4. Define Functions & Their Specific Impacts
         $functions = [
+            [
+                'name' => 'Weg',
+                'category_id' => $infrastructuur,
+                'image' => null, // Simple color block or find a road texture
+                'impacts' => [
+                    $traffic->id => 20,  // Improves flow
+                    $noise->id => -10,   // Adds noise
+                    $air->id => -5,      // Slight pollution
+                ]
+            ],
             [
                 'name' => 'Sociale Huur',
                 'category_id' => $wonen,

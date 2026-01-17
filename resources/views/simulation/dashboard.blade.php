@@ -202,8 +202,21 @@
                     </div>
 
                     <div id="live-feedback" class="fixed top-28 left-1/2 transform -translate-x-1/2 z-[100] w-auto min-w-[300px] text-center hidden pointer-events-none transition-all duration-200"></div>
-                    <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200">
-                        <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
+                    
+                    {{-- GRID CONTROLS --}}
+                    <div class="w-full flex justify-between items-center mb-2 px-1">
+                        <div class="flex gap-2">
+                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider self-center mr-2">Grid:</span>
+                            <button onclick="modifyGrid(1, 0)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs font-bold transition" title="Kolom Toevoegen">+ Kol</button>
+                            <button onclick="modifyGrid(-1, 0)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs font-bold transition" title="Kolom Verwijderen">- Kol</button>
+                            <button onclick="modifyGrid(0, 1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs font-bold transition" title="Rij Toevoegen">+ Rij</button>
+                            <button onclick="modifyGrid(0, -1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs font-bold transition" title="Rij Verwijderen">- Rij</button>
+                        </div>
+                        <span id="grid-size-display" class="text-xs font-mono text-gray-400">4x3</span>
+                    </div>
+
+                    <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 overflow-auto">
+                        <div id="city-grid" class="grid gap-2 w-full min-h-[400px]" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
                             @for($i = 0; $i < 12; $i++)
                                 <div id="cell-{{ $i }}"
                                      onclick="handleCellClick({{ $i }})"
@@ -314,7 +327,11 @@
         const incompatibilityRules = @json($incompatibilityRules ?? []);
         const eventDefinitions = @json($jsEventsData);
 
-        let gridState = Array(12).fill(0);
+        // GRID STATE
+        let gridWidth = 4;
+        let gridHeight = 3;
+        let gridState = Array(gridWidth * gridHeight).fill(0);
+        
         let currentDragIndex = null;
         let activeEvents = [];
 
@@ -339,12 +356,110 @@
             initTimeline();
             initPlanner(); // NEW
             updateClockDisplay();
-            calculateMetrics(); // Initial calc
             
-            // If simulation ID is present (edit mode), we might want to load schedule?
-            // For now, we assume a fresh start or injected data if available.
+            // Initial Render of Grid (overwriting PHP static loop if needed, or just attaching events)
+            // Ideally we stick to PHP rendered for SEO/Speed, but since this is an app, JS render is fine.
+            // Let's force a JS render to ensure state matches.
+            renderGridUI();
+            
+            calculateMetrics(); // Initial calc
         });
+
+        // --- DYNAMIC GRID LOGIC ---
+        function modifyGrid(dCol, dRow) {
+            const newWidth = Math.max(2, gridWidth + dCol); // Min 2x2
+            const newHeight = Math.max(2, gridHeight + dRow);
+            
+            if (newWidth === gridWidth && newHeight === gridHeight) return;
+
+            // Re-map existing cells to new grid
+            let newGridState = Array(newWidth * newHeight).fill(0);
+            
+            for (let r = 0; r < Math.min(gridHeight, newHeight); r++) {
+                for (let c = 0; c < Math.min(gridWidth, newWidth); c++) {
+                    const oldIndex = r * gridWidth + c;
+                    const newIndex = r * newWidth + c;
+                    if (gridState[oldIndex] !== undefined) {
+                        newGridState[newIndex] = gridState[oldIndex];
+                    }
+                }
+            }
+
+            gridWidth = newWidth;
+            gridHeight = newHeight;
+            gridState = newGridState;
+
+            renderGridUI();
+            calculateMetrics();
+        }
+
+        function renderGridUI() {
+            const container = document.getElementById('city-grid');
+            container.style.gridTemplateColumns = `repeat(${gridWidth}, minmax(0, 1fr))`;
+            
+            // Update Display
+            document.getElementById('grid-size-display').innerText = `${gridWidth}x${gridHeight}`;
+
+            container.innerHTML = '';
+            
+            for(let i=0; i < gridState.length; i++) {
+                const funcIndex = gridState[i];
+                const func = availableFunctions[funcIndex] || availableFunctions[0];
+                
+                const cell = document.createElement('div');
+                cell.id = `cell-${i}`;
+                cell.className = "bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred aspect-square";
+                
+                // Attach Events
+                cell.onclick = () => handleCellClick(i);
+                cell.ondrop = (e) => drop(e, i);
+                cell.ondragover = (e) => allowDrop(e, i);
+                cell.ondragleave = () => leaveDrag(i);
+                cell.onmouseenter = (e) => showTooltip(e, i);
+                cell.onmouseleave = () => hideTooltip();
+
+                // Inner Content
+                if (func.id === 'empty') {
+                    cell.innerText = `Kavel ${i + 1}`;
+                } else {
+                    updateCellContent(cell, func);
+                }
+
+                container.appendChild(cell);
+            }
+        }
         
+        function updateCellContent(cell, func) {
+            cell.innerHTML = '';
+            cell.classList.remove('border-gray-300');
+            cell.classList.add('shadow-sm');
+            if (func.id === 'empty') {
+                 cell.innerText = `Kavel ${parseInt(cell.id.split('-')[1]) + 1}`;
+                 cell.classList.add('border-gray-300');
+                 cell.classList.remove('shadow-sm');
+                 return;
+            }
+
+            if (func.image) {
+                const img = document.createElement('img');
+                img.src = func.image;
+                img.className = 'w-full h-full object-cover absolute top-0 left-0 pointer-events-none';
+                cell.appendChild(img);
+            } else {
+                 // For no-image functions (like Roads maybe?), show color block
+                 const block = document.createElement('div');
+                 block.className = 'w-full h-full absolute top-0 left-0 pointer-events-none opacity-50';
+                 block.style.backgroundColor = func.color_hex;
+                 cell.appendChild(block);
+            }
+
+            const span = document.createElement('span');
+            span.className = 'font-bold text-[0.7rem] lg:text-sm relative z-10 bg-white/90 px-2 py-0.5 rounded mt-auto mb-1 pointer-events-none shadow-sm';
+            span.innerText = func.name;
+            span.style.borderBottom = `3px solid ${func.color_hex}`;
+            cell.appendChild(span);
+        }
+
         // --- PLANNER LOGIC ---
         function initPlanner() {
             const list = document.getElementById('planner-event-list');
@@ -512,6 +627,8 @@
             const payload = {
                 name: name,
                 gridState: gridState,
+                gridWidth: gridWidth,
+                gridHeight: gridHeight,
                 scheduleState: simState.schedule,
                 currentTick: simState.tick,
                 status: simState.isPlaying ? 'playing' : 'paused',
@@ -595,17 +712,15 @@
         }
 
         function applySimulationState(data) {
+            // 0. GRID DIMENSIONS
+            if(data.grid_width) gridWidth = parseInt(data.grid_width);
+            if(data.grid_height) gridHeight = parseInt(data.grid_height);
+
             // 1. GRID STATE
             if(data.grid_state && Array.isArray(data.grid_state)) {
                 gridState = data.grid_state;
-                // Refresh Grid UI
-                gridState.forEach((funcIndex, i) => {
-                    if(funcIndex !== undefined) {
-                        // Ensure we have the function data
-                        const func = availableFunctions[funcIndex] || availableFunctions[0];
-                        updateCellUI(i, func);
-                    }
-                });
+                // Re-render Grid
+                renderGridUI();
             }
 
             // 2. SCHEDULE & TIME
@@ -632,6 +747,7 @@
             // Optional: Pause on load
             setPlayState(false);
         }
+
 
         // --- TIME CONTROLS ---
         function setPlayState(play) {
@@ -1204,11 +1320,14 @@
 
         function getNeighbors(i) {
             let neighbors = [];
-            const col = i % 4;
-            if (i >= 4) neighbors.push(i - 4);
-            if (i < 8)  neighbors.push(i + 4);
-            if (col > 0) neighbors.push(i - 1);
-            if (col < 3) neighbors.push(i + 1);
+            const col = i % gridWidth;
+            const row = Math.floor(i / gridWidth);
+            
+            if (row > 0) neighbors.push(i - gridWidth); // Top
+            if (row < gridHeight - 1) neighbors.push(i + gridWidth); // Bottom
+            if (col > 0) neighbors.push(i - 1); // Left
+            if (col < gridWidth - 1) neighbors.push(i + 1); // Right
+            
             return neighbors;
         }
 
@@ -1269,34 +1388,7 @@
 
         function updateCellUI(index, func) {
             const cell = document.getElementById(`cell-${index}`);
-            cell.innerHTML = ''; // Clear current content
-
-            if(func.id === 'empty') {
-                cell.innerText = `Kavel ${index + 1}`;
-                cell.classList.add('border-gray-300');
-                cell.classList.remove('shadow-sm', 'border-metro-darkred');
-                // Remove highlight if it was stuck
-                cell.classList.remove('neighbor-highlight');
-            } else {
-                cell.classList.remove('border-gray-300');
-                cell.classList.add('shadow-sm');
-
-                // 1. The Image (Background)
-                if (func.image) {
-                    const img = document.createElement('img');
-                    img.src = func.image;
-                    // CRITICAL: pointer-events-none ensures the mouse "sees" the DIV, not the IMG
-                    img.className = 'w-full h-full object-cover absolute top-0 left-0 pointer-events-none';
-                    cell.appendChild(img);
-                }
-
-                // 2. The Label (Text)
-                const span = document.createElement('span');
-                span.className = 'font-bold text-[0.7rem] lg:text-sm relative z-10 bg-white/90 px-2 py-0.5 rounded mt-auto mb-1 pointer-events-none shadow-sm';
-                span.innerText = func.name;
-                span.style.borderBottom = `3px solid ${func.color_hex}`;
-                cell.appendChild(span);
-            }
+            updateCellContent(cell, func);
         }
 
         function acknowledgeFunction(id) {
@@ -1360,16 +1452,16 @@
 
         // Helper: Vind alle 8 omliggende cellen (Noord, Zuid, Oost, West + Diagonalen)
         function getSurroundingIndices(index) {
-            const row = Math.floor(index / 4); // Grid is 4 breed
-            const col = index % 4;
+            const row = Math.floor(index / gridWidth);
+            const col = index % gridWidth;
             let indices = [];
 
             // Loop door grid van 3x3 rondom de cel
             for (let r = row - 1; r <= row + 1; r++) {
                 for (let c = col - 1; c <= col + 1; c++) {
-                    // Check of we binnen het bord blijven (3 rijen hoog, 4 kolommen breed)
-                    if (r >= 0 && r < 3 && c >= 0 && c < 4) {
-                        const neighborIndex = r * 4 + c;
+                    // Check of we binnen het bord blijven
+                    if (r >= 0 && r < gridHeight && c >= 0 && c < gridWidth) {
+                        const neighborIndex = r * gridWidth + c;
                         if (neighborIndex !== index) { // Jezelf niet meetellen
                             indices.push(neighborIndex);
                         }
@@ -1528,7 +1620,7 @@
 
             // --- VERWIJDER HIGHLIGHTS ---
             // We halen simpelweg de class van ALLE cellen af, dat is het veiligst/snelst
-            for(let i=0; i<12; i++) {
+            for(let i=0; i<gridState.length; i++) {
                 const el = document.getElementById(`cell-${i}`);
                 if(el) el.classList.remove('neighbor-highlight');
             }

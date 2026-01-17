@@ -15,6 +15,7 @@ class SimulationLoadTest extends TestCase
 
     public function test_can_list_simulations()
     {
+        Simulation::query()->delete();
         $planner = User::factory()->create(['role' => 'planner']);
         Simulation::factory()->count(3)->create();
 

@@ -105,7 +105,9 @@ class SimulationController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'gridState' => 'required|array',
-            'scheduleState' => 'nullable|array', // NEW
+            'gridWidth' => 'nullable|integer|min:2',
+            'gridHeight' => 'nullable|integer|min:2',
+            'scheduleState' => 'nullable|array',
             'currentTick' => 'nullable|integer',
             'status' => 'nullable|string',
             'speed' => 'nullable|integer'
@@ -114,7 +116,9 @@ class SimulationController extends Controller
         $simulation = Simulation::create([
             'name' => $validated['name'],
             'grid_state' => $validated['gridState'],
-            'schedule_state' => $validated['scheduleState'] ?? [], // NEW
+            'grid_width' => $validated['gridWidth'] ?? 4,
+            'grid_height' => $validated['gridHeight'] ?? 3,
+            'schedule_state' => $validated['scheduleState'] ?? [],
             'current_tick' => $validated['currentTick'] ?? 0,
             'status' => $validated['status'] ?? 'paused',
             'speed' => $validated['speed'] ?? 1
@@ -129,14 +133,18 @@ class SimulationController extends Controller
         
         $validated = $request->validate([
             'gridState' => 'sometimes|array',
-            'scheduleState' => 'sometimes|array', // NEW
+            'gridWidth' => 'sometimes|integer|min:2',
+            'gridHeight' => 'sometimes|integer|min:2',
+            'scheduleState' => 'sometimes|array',
             'currentTick' => 'sometimes|integer',
             'status' => 'sometimes|string',
             'speed' => 'sometimes|integer'
         ]);
 
         if (isset($validated['gridState'])) $simulation->grid_state = $validated['gridState'];
-        if (isset($validated['scheduleState'])) $simulation->schedule_state = $validated['scheduleState']; // NEW
+        if (isset($validated['gridWidth'])) $simulation->grid_width = $validated['gridWidth'];
+        if (isset($validated['gridHeight'])) $simulation->grid_height = $validated['gridHeight'];
+        if (isset($validated['scheduleState'])) $simulation->schedule_state = $validated['scheduleState'];
         if (isset($validated['currentTick'])) $simulation->current_tick = $validated['currentTick'];
         if (isset($validated['status'])) $simulation->status = $validated['status'];
         if (isset($validated['speed'])) $simulation->speed = $validated['speed'];

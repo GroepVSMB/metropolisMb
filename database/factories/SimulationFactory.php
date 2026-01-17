@@ -19,6 +19,8 @@ class SimulationFactory extends Factory
         return [
             'name' => $this->faker->sentence(3),
             'grid_state' => array_fill(0, 12, 0),
+            'grid_width' => 4,
+            'grid_height' => 3,
             'schedule_state' => [],
             'current_tick' => 0,
             'status' => 'paused',

@@ -9,7 +9,7 @@ class Simulation extends Model
 {
     use HasFactory; // NEW
 
-    protected $fillable = ['name', 'grid_state', 'schedule_state', 'current_tick', 'status', 'speed'];
+    protected $fillable = ['name', 'grid_state', 'grid_width', 'grid_height', 'schedule_state', 'current_tick', 'status', 'speed'];
 
     protected $casts = [
         'grid_state' => 'array', // Auto-convert JSON to array
