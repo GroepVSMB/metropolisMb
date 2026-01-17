@@ -294,26 +294,7 @@
                         Sleep functies naar de kavels. Let op de regels!
                     </p>
                 </section>
-                                     onclick="handleCellClick({{ $i }})"
-                                     ondrop="drop(event, {{ $i }})"
-                                     ondragover="allowDrop(event, {{ $i }})"
-                                     ondragleave="leaveDrag({{ $i }})"
 
-                                     {{-- NEW: Tooltip Triggers --}}
-                                     onmouseenter="showTooltip(event, {{ $i }})"
-                                     onmouseleave="hideTooltip()"
-
-                                     class="bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred">
-                                    Kavel {{ $i + 1 }}
-                                </div>
-                            @endfor
-                        </div>
-                    </div>
-
-                    <p class="text-center text-xs text-gray-500 mt-2 italic">
-                        Sleep functies naar de kavels. Let op de regels!
-                    </p>
-                </section>
 
                 {{-- KOLOM 3: Score & Metrics --}}
                 <aside class="w-full lg:w-1/4 min-w-[250px] flex flex-col gap-5">
