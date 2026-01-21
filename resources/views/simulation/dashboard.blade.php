@@ -98,6 +98,57 @@
             z-index: 50; /* Zorg dat hij even boven de rest ligt */
             position: relative; /* Zorgt dat de schaduw goed zichtbaar is */
         }
+        /* HOLD TO DELETE STYLES */
+        .cell-content {
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* De rode overlay die groeit */
+        .delete-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%; /* Start leeg */
+            background-color: rgba(220, 38, 38, 0.8); /* Metro Rood, semi-transparant */
+            z-index: 20;
+            transition: height 0s; /* Standaard geen animatie bij reset */
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Icon in de overlay */
+        .delete-overlay::after {
+            content: '🗑️';
+            font-size: 1.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* De active state: Dit wordt via JS toegevoegd */
+        .is-holding .delete-overlay {
+            height: 100%; /* Groei naar vol */
+            transition: height 0.8s linear; /* Duurt 0.8 seconden (de hold tijd) */
+        }
+
+        .is-holding .delete-overlay::after {
+            opacity: 1;
+        }
+
+        /* Klein schud-effect tijdens het vasthouden */
+        .is-holding {
+            animation: shake 0.2s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(1deg); }
+            75% { transform: rotate(-1deg); }
+            100% { transform: rotate(0deg); }
+        }
     </style>
 
     <x-slot name="header">
@@ -179,17 +230,31 @@
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
                                 <div id="cell-{{ $i }}"
-                                     onclick="handleCellClick({{ $i }})"
-                                     ondrop="drop(event, {{ $i }})"
-                                     ondragover="allowDrop(event, {{ $i }})"
-                                     ondragleave="leaveDrag({{ $i }})"
+                                    {{-- VERWIJDERD: onclick="handleCellClick({{ $i }})" --}}
+                                    
+                                    {{-- NIEUW: Mouse Events --}}
+                                    onmousedown="startHold(event, {{ $i }})"
+                                    onmouseup="cancelHold({{ $i }})"
+                                    onmouseleave="cancelHold({{ $i }})"
+                                    
+                                    {{-- NIEUW: Touch Events (voor mobiel/tablet) --}}
+                                    ontouchstart="startHold(event, {{ $i }})"
+                                    ontouchend="cancelHold({{ $i }})"
 
-                                     {{-- NEW: Tooltip Triggers --}}
-                                     onmouseenter="showTooltip(event, {{ $i }})"
-                                     onmouseleave="hideTooltip()"
+                                    {{-- Bestaande Drop logic --}}
+                                    ondrop="drop(event, {{ $i }})"
+                                    ondragover="allowDrop(event, {{ $i }})"
+                                    ondragleave="leaveDrag({{ $i }})"
 
-                                     class="bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred">
-                                    Kavel {{ $i + 1 }}
+                                    {{-- Bestaande Tooltip logic --}}
+                                    onmouseenter="showTooltip(event, {{ $i }})"
+                                    
+                                    class="bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred cell-content">
+                                    
+                                    {{-- NIEUW: De verborgen overlay container --}}
+                                    <div id="overlay-{{ $i }}" class="delete-overlay"></div>
+
+                                    <span class="z-10 pointer-events-none">Kavel {{ $i + 1 }}</span>
                                 </div>
                             @endfor
                         </div>
@@ -835,6 +900,105 @@
                 }
             }
         });
+        // --- 5. HOLD TO DELETE LOGIC ---
+let holdTimer = null;
+const HOLD_DURATION = 800; // 800ms (0.8 seconden) moet overeenkomen met CSS transition
+let isHolding = false;
+
+function startHold(event, cellIndex) {
+    // Alleen linkermuisknop (button 0) of touch
+    if (event.type === 'mousedown' && event.button !== 0) return;
+
+    // Check of er iets in de cel staat om te verwijderen
+    if (gridState[cellIndex] === 0) return;
+
+    // Voorkom context menu op mobiel
+    // event.preventDefault(); 
+
+    isHolding = true;
+    const cell = document.getElementById(`cell-${cellIndex}`);
+    
+    // 1. Start Visuele Animatie
+    cell.classList.add('is-holding');
+
+    // 2. Start Timer
+    holdTimer = setTimeout(() => {
+        if (isHolding) {
+            deleteItem(cellIndex);
+            isHolding = false; // Reset
+        }
+    }, HOLD_DURATION);
+}
+
+function cancelHold(cellIndex) {
+    // Stop alles als we loslaten of de muis wegbewegen
+    if (!isHolding) return;
+
+    isHolding = false;
+    clearTimeout(holdTimer);
+    
+    const cell = document.getElementById(`cell-${cellIndex}`);
+    if (cell) {
+        cell.classList.remove('is-holding');
+    }
+}
+
+function deleteItem(cellIndex) {
+    // 1. Verwijder de animatie class direct
+    const cell = document.getElementById(`cell-${cellIndex}`);
+    cell.classList.remove('is-holding');
+
+    // 2. Speel geluid af (bijv. een "trash" geluid, hier gebruiken we de failure sound als placeholder)
+    playSynthSound('failure'); 
+
+    // 3. Reset de data
+    applyFunctionToCell(cellIndex, 0); // 0 = empty function id (zoals gedefinieerd in jouw availableFunctions[0])
+    
+    // 4. Feedback Toast (Optioneel)
+    // showError('Item verwijderd'); // Je kunt dit hernoemen naar showToast
+}
+
+
+// OUDE updateCellUI overschrijven of aanpassen:
+const originalUpdateCellUI = updateCellUI; // Backup als referentie
+
+updateCellUI = function(index, func) {
+    const cell = document.getElementById(`cell-${index}`);
+    cell.innerHTML = ''; // Dit gooit de overlay weg, dus we moeten hem terugzetten
+
+    // 1. De Overlay altijd terugplaatsen
+    const overlay = document.createElement('div');
+    overlay.id = `overlay-${index}`;
+    overlay.className = 'delete-overlay';
+    cell.appendChild(overlay);
+
+    // 2. De rest van de logica (gekopieerd van je originele code)
+    if(func.id === 'empty') {
+        const textSpan = document.createElement('span');
+        textSpan.className = 'z-10 pointer-events-none';
+        textSpan.innerText = `Kavel ${index + 1}`;
+        cell.appendChild(textSpan);
+
+        cell.classList.add('border-gray-300');
+        cell.classList.remove('shadow-sm', 'border-metro-darkred', 'neighbor-highlight');
+    } else {
+        cell.classList.remove('border-gray-300');
+        cell.classList.add('shadow-sm');
+
+        if (func.image) {
+            const img = document.createElement('img');
+            img.src = func.image;
+            img.className = 'w-full h-full object-cover absolute top-0 left-0 pointer-events-none';
+            cell.appendChild(img);
+        }
+
+        const span = document.createElement('span');
+        span.className = 'font-bold text-[0.7rem] lg:text-sm relative z-10 bg-white/90 px-2 py-0.5 rounded mt-auto mb-1 pointer-events-none shadow-sm';
+        span.innerText = func.name;
+        span.style.borderBottom = `3px solid ${func.color_hex}`;
+        cell.appendChild(span);
+    }
+}
     </script>
 
     {{-- DRAG GHOST --}}
