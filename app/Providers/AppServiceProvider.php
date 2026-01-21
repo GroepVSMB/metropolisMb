@@ -3,7 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-
+use App\Models\CityFunction;
+use App\Observers\CityFunctionObserver;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -17,8 +18,10 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+   public function boot(): void
     {
-        //
+        CityFunction::observe(CityFunctionObserver::class);
     }
 }
+
+

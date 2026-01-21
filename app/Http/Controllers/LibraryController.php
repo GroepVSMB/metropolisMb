@@ -9,6 +9,10 @@ use App\Models\QualityMetric;
 use App\Models\FunctionImpact;
 use Illuminate\Http\Request;
 
+use App\Models\User;
+use App\Notifications\NewFunctionAdded;
+use Illuminate\Support\Facades\Notification;
+
 class LibraryController extends Controller
 {
     public function index()
@@ -79,6 +83,13 @@ class LibraryController extends Controller
                 }
             }
         }
+
+        // --- NEW: Trigger Notification ---
+        // Select the users who need to know (e.g., Planners/Experts)
+        // You can adjust this query to select specific roles
+        $experts = User::where('role', 'planner')->get(); 
+        
+        Notification::send($experts, new NewFunctionAdded($function));
 
         return redirect()->route('library.manage')->with('success', 'Functie toegevoegd!');
     }

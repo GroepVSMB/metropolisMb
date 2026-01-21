@@ -72,6 +72,32 @@
             50% { opacity: 1; }
             100% { opacity: 0.6; }
         }
+
+
+       @keyframes flashHighlight {
+            0% { 
+                background-color: rgba(157, 26, 26, 0.1); /* 10% Rood (Licht) */
+                border-color: rgb(157, 26, 26);           /* 100% Rood (Rand) */
+                transform: scale(1.02); 
+                box-shadow: 0 4px 6px -1px rgba(157, 26, 26, 0.2);
+            }
+            50% { 
+                background-color: rgba(157, 26, 26, 0.2); /* Iets donkerder */
+                border-color: rgb(157, 26, 26); 
+                transform: scale(1.02);
+            }
+            100% { 
+                background-color: #f9fafb; /* Terug naar gray-50 */
+                border-color: #e5e7eb;     /* Terug naar gray-200 */
+                transform: scale(1); 
+            }
+        }
+
+        .flash-target {
+            animation: flashHighlight 2s ease-out forwards;
+            z-index: 50; /* Zorg dat hij even boven de rest ligt */
+            position: relative; /* Zorgt dat de schaduw goed zichtbaar is */
+        }
     </style>
 
     <x-slot name="header">
@@ -108,11 +134,25 @@
                                     <ul class="space-y-2">
                                         @foreach($catFunctions as $function)
                                             <li draggable="true"
+                                                id="function-{{ $function['id'] }}"
                                                 ondragstart="drag(event, {{ $function['id'] }})"
                                                 onmousedown="acknowledgeFunction({{ $function['id'] }})"
                                                 class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative">
 
-                                                @if(isset($function['is_new']) && $function['is_new'])
+                                              @php
+                                                    // Bepaal of het nieuw is. 
+                                                    // Logic: Als 'is_new' bestaat, gebruik die. 
+                                                    // Anders: Als 'acknowledged_by_users_exists' bestaat, is het NIEUW als die waarde FALSE (0) is.
+                                                    $showBadge = false;
+                                                    
+                                                    if (isset($function['is_new'])) {
+                                                        $showBadge = $function['is_new'];
+                                                    } elseif (isset($function['acknowledged_by_users_exists'])) {
+                                                        $showBadge = !$function['acknowledged_by_users_exists'];
+                                                    }
+                                                @endphp
+
+                                                @if($showBadge)
                                                     <span id="badge-{{ $function['id'] }}" class="new-badge">NIEUW</span>
                                                 @endif
 
@@ -771,6 +811,30 @@
                 if(el) el.classList.remove('neighbor-highlight');
             }
         }
+        // --- 4. DEEP LINKING & HIGHLIGHT LOGICA ---
+        document.addEventListener("DOMContentLoaded", () => {
+            // Check of er een hash in de URL staat (bijv. #function-5)
+            if (window.location.hash) {
+                const targetId = window.location.hash.substring(1); // haal '#' weg
+                const targetElement = document.getElementById(targetId);
+
+                if (targetElement) {
+                    // 1. Scroll het element in beeld (in de sidebar scrollcontainer)
+                    targetElement.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+
+                    // 2. Voeg de highlight animatie toe
+                    targetElement.classList.add('flash-target');
+
+                    // 3. Verwijder de class na afloop (zodat je het nog eens kan testen)
+                    setTimeout(() => {
+                        targetElement.classList.remove('flash-target');
+                    }, 2000);
+                }
+            }
+        });
     </script>
 
     {{-- DRAG GHOST --}}
