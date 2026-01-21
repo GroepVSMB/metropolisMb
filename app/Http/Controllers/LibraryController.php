@@ -8,7 +8,7 @@ use App\Models\CityFunction;
 use App\Models\QualityMetric;
 use App\Models\FunctionImpact;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Notifications\NewFunctionAdded;
 use Illuminate\Support\Facades\Notification;
