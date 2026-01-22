@@ -8,7 +8,7 @@ use App\Models\CityFunction;
 use App\Models\QualityMetric;
 use App\Models\FunctionImpact;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Notifications\NewFunctionAdded;
 use Illuminate\Support\Facades\Notification;
@@ -17,13 +17,10 @@ class LibraryController extends Controller
 {
     public function index()
     {
-        // 1. Fetch data
         $functions = CityFunction::with('category')->get()->sortBy('category.name');
 
-        // 2. Group data for the Blade View (HTML)
         $groupedFunctions = $functions->groupBy(fn($f) => $f->category->name ?? 'Overig');
 
-        // 3. Prepare data for the Popup/Modal (JS)
         $jsFunctionsData = $functions->map(function($f) {
             return [
                 'id' => $f->id,
@@ -31,12 +28,16 @@ class LibraryController extends Controller
                 'category' => $f->category->name ?? 'Onbekend',
                 'color_hex' => $f->category->color_hex ?? '#cccccc',
                 'livability' => $f->livability_number,
-                'image' => $f->image, // This is now a direct link URL
+                
+                // CHECK if the image is stored in a url or a image file because of changes 
+                'image' => str_starts_with($f->image, 'http') 
+                            ? $f->image 
+                            : asset('storage/' . $f->image),
+                            
                 'created_at' => $f->created_at,
             ];
         })->values();
 
-        // 4. IMPORTANT: Pass BOTH variables to the view using compact()
         return view('library.index', compact('groupedFunctions', 'jsFunctionsData'));
     }
 
@@ -54,21 +55,25 @@ class LibraryController extends Controller
         $metrics = QualityMetric::all(); // Pass metrics for the input fields
         return view('library.create', compact('categories', 'metrics'));
     }
-// 3. MANAGER: Store Data (Updated for Links)
+    
+    // 3. MANAGER: Store Data (Updated for Links)
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
-            'image' => 'required|url',
-            'impacts' => 'nullable|array', // New validation
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', 
+            'impacts' => 'nullable|array',
         ]);
+
+        // SAVE FILE
+        // 'storage/app/public/uploads'
+        $imagePath = $request->file('image')->store('uploads', 'public');
 
         $function = CityFunction::create([
             'name' => $request->name,
             'category_id' => $request->category_id,
-            'image' => $request->image,
-            // 'livability_number' is removed
+            'image' => $imagePath, //save path
         ]);
 
         // Save new impacts
@@ -84,17 +89,13 @@ class LibraryController extends Controller
             }
         }
 
-        // --- NEW: Trigger Notification ---
-        // Select the users who need to know (e.g., Planners/Experts)
-        // You can adjust this query to select specific roles
         $experts = User::where('role', 'planner')->get(); 
-        
         Notification::send($experts, new NewFunctionAdded($function));
 
-        return redirect()->route('library.manage')->with('success', 'Functie toegevoegd!');
+        return redirect()->route('library.manage')->with('success', 'Functie met afbeelding toegevoegd!');
     }
 
-// 5. MANAGER: Update Data (Updated for Links)
+    // 5. MANAGER: Update Data (Updated for Links)
     public function update(Request $request, $id)
     {
         $function = CityFunction::findOrFail($id);
@@ -102,17 +103,29 @@ class LibraryController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
-            'image' => 'required|url',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'impacts' => 'nullable|array',
         ]);
 
-        $function->update([
+        //prepare data
+        $data = [
             'name' => $request->name,
             'category_id' => $request->category_id,
-            'image' => $request->image,
-        ]);
+        ];
 
-        // Sync Impacts: Delete all old ones, save new ones
+        // CHECK: is there a new image uploaded
+        if ($request->hasFile('image')) {
+            if ($function->image && !str_starts_with($function->image, 'http')) {
+                Storage::disk('public')->delete($function->image);
+            }
+
+            // save image
+            $data['image'] = $request->file('image')->store('uploads', 'public');
+        }
+
+        $function->update($data);
+
+        // Sync Impacts
         $function->impacts()->delete();
 
         if ($request->impacts) {

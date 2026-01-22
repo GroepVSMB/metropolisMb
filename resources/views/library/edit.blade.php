@@ -6,7 +6,7 @@
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white p-6 rounded shadow">
-                <form action="{{ route('library.update', $function->id) }}" method="POST">
+                <form action="{{ route('library.update', $function->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -27,8 +27,12 @@
                             </select>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block font-medium text-sm text-gray-700">Afbeelding URL</label>
-                            <input type="url" name="image" value="{{ $function->image }}" required class="w-full border-gray-300 rounded shadow-sm">
+                            <label class="block font-medium text-sm text-gray-700">Afbeelding Uploaden</label>
+                            <input type="file" 
+                                name="image" 
+                                accept="image/png, image/jpeg, image/jpg"
+                                class="w-full border-gray-300 rounded shadow-sm">
+                            <p class="text-xs text-gray-500 mt-1">Toegestane formaten: JPG, PNG. Max 2MB.</p>
                         </div>
                     </div>
 

@@ -35,68 +35,109 @@
 
         .metric-bar { transition: width 0.5s ease-in-out, background-color 0.5s; }
 
+        /* --- PERFORMANCE FIX: LICHTERE HIGHLIGHTS --- */
         .neighbor-highlight {
-            background-color: rgba(255, 255, 0, 0.15) !important; /* Gele gloed */
-            box-shadow: inset 0 0 10px rgba(255, 200, 0, 0.5);
-            transition: background-color 0.3s ease;
-        }
-
-        /* NEW: Critical for tooltips to work */
-        .pointer-events-none {
-            pointer-events: none !important;
-        }
-
-        /* Ensure tooltip is always on top */
-        #hover-tooltip {
-            z-index: 9999 !important;
-        }
-
-        .neighbor-highlight {
-            position: relative; /* Ensure ::after is positioned relative to this cell */
+            position: relative;
+            z-index: 1;
         }
 
         .neighbor-highlight::after {
             content: '';
             position: absolute;
-            inset: 0; /* Cover the whole cell */
-            background-color: rgba(255, 255, 0, 0.2); /* The Yellow Glow */
-            box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.8);
-            z-index: 5; /* Sit ON TOP of the image (z=0) but BELOW text (z=10) */
-            pointer-events: none; /* Let clicks pass through */
-            border-radius: 0.125rem; /* Match rounded-sm */
-            animation: pulseGlow 2s infinite;
+            inset: 0;
+            background-color: rgba(255, 255, 0, 0.25); /* Gele gloed (Statisch) */
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            z-index: 5; 
+            pointer-events: none; /* Muis clicks gaan er doorheen */
+            border-radius: 0.125rem;
         }
 
-        @keyframes pulseGlow {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
+        /* NEW: Critical for tooltips/overlays to work */
+        .pointer-events-none {
+            pointer-events: none !important;
         }
 
+        /* Ensure tooltip is always on top but doesn't block mouse */
+        #hover-tooltip {
+            z-index: 9999 !important;
+            pointer-events: none !important;
+        }
 
        @keyframes flashHighlight {
             0% { 
-                background-color: rgba(157, 26, 26, 0.1); /* 10% Rood (Licht) */
-                border-color: rgb(157, 26, 26);           /* 100% Rood (Rand) */
+                background-color: rgba(157, 26, 26, 0.1);
+                border-color: rgb(157, 26, 26);
                 transform: scale(1.02); 
                 box-shadow: 0 4px 6px -1px rgba(157, 26, 26, 0.2);
             }
             50% { 
-                background-color: rgba(157, 26, 26, 0.2); /* Iets donkerder */
+                background-color: rgba(157, 26, 26, 0.2);
                 border-color: rgb(157, 26, 26); 
                 transform: scale(1.02);
             }
             100% { 
-                background-color: #f9fafb; /* Terug naar gray-50 */
-                border-color: #e5e7eb;     /* Terug naar gray-200 */
+                background-color: #f9fafb;
+                border-color: #e5e7eb;
                 transform: scale(1); 
             }
         }
 
         .flash-target {
             animation: flashHighlight 2s ease-out forwards;
-            z-index: 50; /* Zorg dat hij even boven de rest ligt */
-            position: relative; /* Zorgt dat de schaduw goed zichtbaar is */
+            z-index: 50;
+            position: relative;
+        }
+
+        /* --- HOLD TO DELETE STYLES --- */
+        .cell-content {
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* De rode overlay die groeit */
+        .delete-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%; /* Start leeg */
+            background-color: rgba(220, 38, 38, 0.8); /* Metro Rood */
+            z-index: 20;
+            transition: height 0s; /* Standaard geen animatie bij reset */
+            pointer-events: none; /* ESSENTIEEL: Blokkeert mouseleave niet */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Icon in de overlay */
+        .delete-overlay::after {
+            content: '🗑️';
+            font-size: 1.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* De active state: Dit wordt via JS toegevoegd */
+        .is-holding .delete-overlay {
+            height: 100%; /* Groei naar vol */
+            transition: height 0.8s linear; /* Duurt 0.8 seconden */
+        }
+
+        .is-holding .delete-overlay::after {
+            opacity: 1;
+        }
+
+        /* Klein schud-effect tijdens het vasthouden */
+        .is-holding {
+            animation: shake 0.2s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(1deg); }
+            75% { transform: rotate(-1deg); }
+            100% { transform: rotate(0deg); }
         }
     </style>
 
@@ -139,12 +180,8 @@
                                                 onmousedown="acknowledgeFunction({{ $function['id'] }})"
                                                 class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative">
 
-                                              @php
-                                                    // Bepaal of het nieuw is. 
-                                                    // Logic: Als 'is_new' bestaat, gebruik die. 
-                                                    // Anders: Als 'acknowledged_by_users_exists' bestaat, is het NIEUW als die waarde FALSE (0) is.
+                                                @php
                                                     $showBadge = false;
-                                                    
                                                     if (isset($function['is_new'])) {
                                                         $showBadge = $function['is_new'];
                                                     } elseif (isset($function['acknowledged_by_users_exists'])) {
@@ -179,31 +216,43 @@
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
                                 <div id="cell-{{ $i }}"
-                                     onclick="handleCellClick({{ $i }})"
+                                     {{-- MOUSE EVENTS (Hold to Delete) --}}
+                                     onmousedown="startHold(event, {{ $i }})"
+                                     onmouseup="cancelHold({{ $i }})"
+                                     onmouseleave="cancelHold({{ $i }}); hideTooltip()"
+                                     
+                                     {{-- TOUCH EVENTS (Mobile) --}}
+                                     ontouchstart="startHold(event, {{ $i }})"
+                                     ontouchend="cancelHold({{ $i }})"
+
+                                     {{-- DROP EVENTS --}}
                                      ondrop="drop(event, {{ $i }})"
                                      ondragover="allowDrop(event, {{ $i }})"
                                      ondragleave="leaveDrag({{ $i }})"
 
-                                     {{-- NEW: Tooltip Triggers --}}
+                                     {{-- TOOLTIP --}}
                                      onmouseenter="showTooltip(event, {{ $i }})"
-                                     onmouseleave="hideTooltip()"
+                                     
+                                     class="bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred cell-content">
+                                    
+                                    {{-- De overlay div voor Hold-to-Delete --}}
+                                    <div id="overlay-{{ $i }}" class="delete-overlay"></div>
 
-                                     class="bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred">
-                                    Kavel {{ $i + 1 }}
+                                    <span class="z-10 pointer-events-none">Kavel {{ $i + 1 }}</span>
                                 </div>
                             @endfor
                         </div>
                     </div>
 
                     <p class="text-center text-xs text-gray-500 mt-2 italic">
-                        Sleep functies naar de kavels. Let op de regels!
+                        Houd ingedrukt om te verwijderen. Sleep nieuwe functies naar de kavels.
                     </p>
                 </section>
 
                 {{-- KOLOM 3: Score & Metrics --}}
                 <aside class="w-full lg:w-1/4 min-w-[250px] flex flex-col gap-5">
 
-                    {{-- 1. GLOBAL AVERAGE SCORE CARD (Visual Feedback) --}}
+                    {{-- 1. GLOBAL AVERAGE SCORE CARD --}}
                     <article class="bg-[#448a28] p-5 text-white font-bold flex justify-between items-center shadow-lg rounded-lg transform hover:scale-105 transition-transform relative overflow-hidden">
                         <div class="flex flex-col z-10">
                             <span class="uppercase text-xs opacity-80 tracking-wider">Gemiddelde</span>
@@ -211,16 +260,10 @@
                         </div>
 
                         <div class="flex flex-col items-end z-10">
-                            {{-- Global Score --}}
                             <span id="global-score-val" class="text-4xl font-black transition-all duration-300">100</span>
-
-                            {{-- The Delta Indicator (Arrow Up/Down) --}}
-                            <span id="score-delta" class="text-sm font-bold opacity-0 transition-all duration-500 transform translate-y-2 bg-white/20 px-2 rounded backdrop-blur-sm">
-                                -
-                            </span>
+                            <span id="score-delta" class="text-sm font-bold opacity-0 transition-all duration-500 transform translate-y-2 bg-white/20 px-2 rounded backdrop-blur-sm">-</span>
                         </div>
 
-                        {{-- Flash Effect --}}
                         <div id="score-flash" class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-300"></div>
                     </article>
 
@@ -300,7 +343,6 @@
             let currentScores = {};
             if (!metrics || !Array.isArray(metrics)) return;
 
-            // Start at 100
             metrics.forEach(m => currentScores[m.id] = 100);
 
             // Add Grid Impacts
@@ -335,7 +377,6 @@
             metrics.forEach(m => {
                 let val = currentScores[m.id];
                 if (isNaN(val)) val = 100;
-
                 totalScore += val;
 
                 // Update Bars
@@ -355,7 +396,6 @@
                 }
             });
 
-            // CALCULATE & UPDATE GLOBAL AVERAGE
             let newAverage = totalScore / metrics.length;
             updateGlobalScore(newAverage);
         }
@@ -363,21 +403,17 @@
         // --- 2. GLOBAL SCORE & VISUAL FEEDBACK LOGIC ---
         function updateGlobalScore(newScore) {
             const diff = newScore - currentAverageScore;
-
             const scoreEl = document.getElementById('global-score-val');
             const deltaEl = document.getElementById('score-delta');
             const flashEl = document.getElementById('score-flash');
 
-            // Only trigger effects if there is a real change
             if (Math.abs(diff) > 0.5) {
                 const isPositive = diff > 0;
                 const arrow = isPositive ? '▲' : '▼';
                 const colorClass = isPositive ? 'text-green-100' : 'text-red-100';
 
-                // PLAY SOUND
                 playSynthSound(isPositive ? 'success' : 'failure');
 
-                // SHOW DELTA (Arrow & Number)
                 deltaEl.innerText = `${arrow} ${Math.abs(diff).toFixed(1)}`;
                 deltaEl.className = `text-sm font-bold transition-all duration-500 px-2 rounded backdrop-blur-sm ${colorClass}`;
 
@@ -385,24 +421,24 @@
                     deltaEl.classList.remove('opacity-0', 'translate-y-2');
                 });
 
-                // FLASH EFFECT
                 flashEl.classList.replace('opacity-0', 'opacity-20');
                 setTimeout(() => flashEl.classList.replace('opacity-20', 'opacity-0'), 300);
 
-                // Hide Delta after 3 seconds
                 if (deltaTimeout) clearTimeout(deltaTimeout);
                 deltaTimeout = setTimeout(() => {
                     deltaEl.classList.add('opacity-0', 'translate-y-2');
                 }, 3000);
             }
 
-            // Update Text
             scoreEl.innerText = Math.round(newScore);
             currentAverageScore = newScore;
         }
 
         // --- 3. DRAG & DROP LOGIC ---
         function drag(ev, dbId) {
+            // FIX: Direct tooltips verbergen bij start slepen
+            hideTooltip();
+
             const func = availableFunctions.find(f => f.id === dbId);
             const indexInArray = availableFunctions.indexOf(func);
             currentDragIndex = indexInArray;
@@ -484,11 +520,7 @@
                 cell.classList.add('drag-over-invalid');
                 cell.classList.remove('drag-over-valid');
                 ev.dataTransfer.dropEffect = "none";
-                feedbackBar.innerHTML = `
-                    <div class="inline-block bg-red-100 text-red-700 border-2 border-red-400 px-6 py-3 rounded-lg shadow-2xl font-bold text-sm animate-bounce pointer-events-auto">
-                        ️ ${check.message}
-                    </div>
-                `;
+                feedbackBar.innerHTML = `<div class="inline-block bg-red-100 text-red-700 border-2 border-red-400 px-6 py-3 rounded-lg shadow-2xl font-bold text-sm animate-bounce pointer-events-auto">️ ${check.message}</div>`;
                 feedbackBar.classList.remove('hidden');
             }
         }
@@ -507,47 +539,47 @@
 
             if (!check.valid) {
                 showError(check.message);
-                playSynthSound('failure'); // Buzz on error
+                playSynthSound('failure');
                 return;
             }
-
             applyFunctionToCell(cellIndex, funcIndex);
-        }
-
-        function handleCellClick(index) {
-            if (gridState[index] !== 0) applyFunctionToCell(index, 0);
         }
 
         function applyFunctionToCell(cellIndex, funcIndex) {
             gridState[cellIndex] = funcIndex;
             updateCellUI(cellIndex, availableFunctions[funcIndex]);
-            calculateMetrics(); // Triggers Score Update
+            calculateMetrics();
         }
 
         function updateCellUI(index, func) {
             const cell = document.getElementById(`cell-${index}`);
-            cell.innerHTML = ''; // Clear current content
+            cell.innerHTML = ''; 
+
+            // FIX: Altijd de overlay terugplaatsen
+            const overlay = document.createElement('div');
+            overlay.id = `overlay-${index}`;
+            overlay.className = 'delete-overlay';
+            cell.appendChild(overlay);
 
             if(func.id === 'empty') {
-                cell.innerText = `Kavel ${index + 1}`;
+                const textSpan = document.createElement('span');
+                textSpan.className = 'z-10 pointer-events-none';
+                textSpan.innerText = `Kavel ${index + 1}`;
+                cell.appendChild(textSpan);
+
                 cell.classList.add('border-gray-300');
-                cell.classList.remove('shadow-sm', 'border-metro-darkred');
-                // Remove highlight if it was stuck
-                cell.classList.remove('neighbor-highlight');
+                cell.classList.remove('shadow-sm', 'border-metro-darkred', 'neighbor-highlight');
             } else {
                 cell.classList.remove('border-gray-300');
                 cell.classList.add('shadow-sm');
 
-                // 1. The Image (Background)
                 if (func.image) {
                     const img = document.createElement('img');
                     img.src = func.image;
-                    // CRITICAL: pointer-events-none ensures the mouse "sees" the DIV, not the IMG
                     img.className = 'w-full h-full object-cover absolute top-0 left-0 pointer-events-none';
                     cell.appendChild(img);
                 }
 
-                // 2. The Label (Text)
                 const span = document.createElement('span');
                 span.className = 'font-bold text-[0.7rem] lg:text-sm relative z-10 bg-white/90 px-2 py-0.5 rounded mt-auto mb-1 pointer-events-none shadow-sm';
                 span.innerText = func.name;
@@ -590,7 +622,6 @@
             calculateMetrics();
         }
 
-        // --- AUDIO SYNTHESIS ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSynthSound(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -601,7 +632,6 @@
             const now = audioCtx.currentTime;
 
             if (type === 'success') {
-                // High Pitch Ping (Up)
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(600, now);
                 oscillator.frequency.exponentialRampToValueAtTime(900, now + 0.1);
@@ -610,7 +640,6 @@
                 oscillator.start(now);
                 oscillator.stop(now + 0.5);
             } else {
-                // Low Pitch Thud (Down/Error)
                 oscillator.type = 'triangle';
                 oscillator.frequency.setValueAtTime(150, now);
                 oscillator.frequency.linearRampToValueAtTime(100, now + 0.2);
@@ -628,31 +657,23 @@
             setTimeout(() => toast.classList.add('hidden'), 5000);
         }
 
-        // --- TOOLTIP & VISUALISATIE LOGICA (SIM.10) ---
+        // --- TOOLTIP LOGICA ---
+        let hoverTimeout = null;
 
-        let hoverTimeout = null; // Voor de 0.5s vertraging
-
-        // Helper: Vind metric naam
         function getMetricName(id) {
             const m = metrics.find(x => x.id == id);
             return m ? m.name : 'Onbekend';
         }
 
-        // Helper: Vind alle 8 omliggende cellen (Noord, Zuid, Oost, West + Diagonalen)
         function getSurroundingIndices(index) {
-            const row = Math.floor(index / 4); // Grid is 4 breed
+            const row = Math.floor(index / 4);
             const col = index % 4;
             let indices = [];
-
-            // Loop door grid van 3x3 rondom de cel
             for (let r = row - 1; r <= row + 1; r++) {
                 for (let c = col - 1; c <= col + 1; c++) {
-                    // Check of we binnen het bord blijven (3 rijen hoog, 4 kolommen breed)
                     if (r >= 0 && r < 3 && c >= 0 && c < 4) {
                         const neighborIndex = r * 4 + c;
-                        if (neighborIndex !== index) { // Jezelf niet meetellen
-                            indices.push(neighborIndex);
-                        }
+                        if (neighborIndex !== index) indices.push(neighborIndex);
                     }
                 }
             }
@@ -660,20 +681,14 @@
         }
 
         function showTooltip(event, cellIndex) {
-            // Stap 1: Clear eventuele oude timers zodat we niet flikkeren
             if (hoverTimeout) clearTimeout(hoverTimeout);
-
-            // Stap 2: Start de vertraging van 0.5 seconde (500ms)
             hoverTimeout = setTimeout(() => {
                 executeShowTooltip(cellIndex);
-            }, 500); // <--- Acceptatie Criterium: >0.5s
+            }, 500);
         }
 
         function executeShowTooltip(cellIndex) {
-            // 1. Basic Data Validation
             const funcIndex = gridState[cellIndex];
-            // if (!funcIndex || funcIndex === 0) return;
-
             const func = availableFunctions[funcIndex];
             if (!func) return;
 
@@ -682,10 +697,7 @@
             const impactsList = document.getElementById('tooltip-impacts');
             const synergyList = document.getElementById('tooltip-synergy');
 
-            // Set Title
             titleEl.innerText = func.name;
-
-            // --- A. OUTGOING IMPACTS (Effect on Neighbors) ---
             impactsList.innerHTML = '';
             let hasImpacts = false;
 
@@ -695,42 +707,28 @@
                     hasImpacts = true;
                     const valNum = Number(value);
                     const name = getMetricName(metricId);
-                    const colorClass = valNum > 0 ? 'text-green-600' : 'text-red-500'; // Red for negative
+                    const colorClass = valNum > 0 ? 'text-green-600' : 'text-red-500';
                     const sign = valNum > 0 ? '+' : '';
-
-                    impactsList.innerHTML += `
-                    <li class="flex justify-between items-center border-b border-gray-50 pb-1 last:border-0">
-                        <span class="text-gray-600">${name}</span>
-                        <span class="font-bold ${colorClass} text-xs">${sign}${valNum}</span>
-                    </li>`;
+                    impactsList.innerHTML += `<li class="flex justify-between items-center border-b border-gray-50 pb-1 last:border-0"><span class="text-gray-600">${name}</span><span class="font-bold ${colorClass} text-xs">${sign}${valNum}</span></li>`;
                 }
             }
             if (!hasImpacts) impactsList.innerHTML = '<li class="text-gray-400 italic text-xs">Geen uitgaande effecten</li>';
 
-            // --- B. INCOMING SYNERGY (What neighbors do to ME) ---
             synergyList.innerHTML = '';
             const neighbors = getSurroundingIndices(cellIndex);
-            let receivedEffects = {}; // Store aggregates: { 'Air Quality': { val: 10, sources: ['Park'] } }
+            let receivedEffects = {};
 
             neighbors.forEach(nIndex => {
                 const nFuncIndex = gridState[nIndex];
                 if (nFuncIndex && nFuncIndex !== 0) {
                     const neighborFunc = availableFunctions[nFuncIndex];
-
-                    // If neighbor has impacts, add them to my "received" list
                     if (neighborFunc.impacts) {
                         for (const [metricId, value] of Object.entries(neighborFunc.impacts)) {
                             const valNum = Number(value);
                             if (valNum === 0) continue;
-
                             const mName = getMetricName(metricId);
-
-                            if (!receivedEffects[mName]) {
-                                receivedEffects[mName] = { value: 0, sources: [] };
-                            }
-
+                            if (!receivedEffects[mName]) receivedEffects[mName] = { value: 0, sources: [] };
                             receivedEffects[mName].value += valNum;
-                            // Avoid duplicate source names (e.g. "Park, Park") -> just "Park"
                             if (!receivedEffects[mName].sources.includes(neighborFunc.name)) {
                                 receivedEffects[mName].sources.push(neighborFunc.name);
                             }
@@ -739,102 +737,105 @@
                 }
             });
 
-            // Render Received Effects
             let hasSynergy = false;
             for (const [metricName, data] of Object.entries(receivedEffects)) {
                 hasSynergy = true;
                 const colorClass = data.value > 0 ? 'text-green-600' : 'text-red-500';
                 const sign = data.value > 0 ? '+' : '';
-                const sourceText = data.sources.join(', '); // e.g. "Park, Factory"
-
-                synergyList.innerHTML += `
-                <li class="flex justify-between items-start border-b border-gray-50 pb-1 last:border-0">
-                    <div class="flex flex-col leading-tight">
-                        <span class="text-gray-600">${metricName}</span>
-                        <span class="text-[10px] text-gray-400 italic">van: ${sourceText}</span>
-                    </div>
-                    <span class="font-bold ${colorClass} text-xs mt-1">${sign}${data.value}</span>
-                </li>`;
+                const sourceText = data.sources.join(', ');
+                synergyList.innerHTML += `<li class="flex justify-between items-start border-b border-gray-50 pb-1 last:border-0"><div class="flex flex-col leading-tight"><span class="text-gray-600">${metricName}</span><span class="text-[10px] text-gray-400 italic">van: ${sourceText}</span></div><span class="font-bold ${colorClass} text-xs mt-1">${sign}${data.value}</span></li>`;
             }
+            if (!hasSynergy) synergyList.innerHTML = '<li class="text-gray-400 italic text-xs">Geen invloed van buren</li>';
 
-            if (!hasSynergy) {
-                synergyList.innerHTML = '<li class="text-gray-400 italic text-xs">Geen invloed van buren</li>';
-            }
-
-            // --- C. HIGHLIGHT NEIGHBORS (Visual Scope) ---
             neighbors.forEach(nIndex => {
                 const el = document.getElementById(`cell-${nIndex}`);
                 if(el) el.classList.add('neighbor-highlight');
             });
 
-            // --- D. POSITIONING ---
             const cell = document.getElementById(`cell-${cellIndex}`);
             const rect = cell.getBoundingClientRect();
-
             tooltip.classList.remove('hidden');
             let top = rect.top;
             let left = rect.right + 10;
-
-            // Screen edge detection
             if (left + 250 > window.innerWidth) left = rect.left - 270;
-            if (top + 350 > window.innerHeight) top = window.innerHeight - 370; // Adjusted for taller tooltip
+            if (top + 350 > window.innerHeight) top = window.innerHeight - 370;
 
             tooltip.style.top = `${top}px`;
             tooltip.style.left = `${left}px`;
-
             requestAnimationFrame(() => {
                 tooltip.classList.remove('opacity-0', 'scale-95');
                 tooltip.classList.add('opacity-100', 'scale-100');
             });
         }
 
+        // --- UPDATED CLEANUP FUNCTION ---
         function hideTooltip() {
-            // Stop de timer als de muis alweer weg is voordat de 0.5s voorbij is
             if (hoverTimeout) clearTimeout(hoverTimeout);
-
             const tooltip = document.getElementById('hover-tooltip');
-
-            // Verberg Tooltip
             tooltip.classList.remove('opacity-100', 'scale-100');
             tooltip.classList.add('opacity-0', 'scale-95');
-
             setTimeout(() => {
-                if(tooltip.classList.contains('opacity-0')) {
-                    tooltip.classList.add('hidden');
-                }
+                if(tooltip.classList.contains('opacity-0')) tooltip.classList.add('hidden');
             }, 200);
 
-            // --- VERWIJDER HIGHLIGHTS ---
-            // We halen simpelweg de class van ALLE cellen af, dat is het veiligst/snelst
+            // FORCE CLEAN: Verwijder highlights van alle cellen
             for(let i=0; i<12; i++) {
                 const el = document.getElementById(`cell-${i}`);
                 if(el) el.classList.remove('neighbor-highlight');
             }
         }
-        // --- 4. DEEP LINKING & HIGHLIGHT LOGICA ---
+
         document.addEventListener("DOMContentLoaded", () => {
-            // Check of er een hash in de URL staat (bijv. #function-5)
             if (window.location.hash) {
-                const targetId = window.location.hash.substring(1); // haal '#' weg
+                const targetId = window.location.hash.substring(1);
                 const targetElement = document.getElementById(targetId);
-
                 if (targetElement) {
-                    // 1. Scroll het element in beeld (in de sidebar scrollcontainer)
-                    targetElement.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center' 
-                    });
-
-                    // 2. Voeg de highlight animatie toe
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     targetElement.classList.add('flash-target');
-
-                    // 3. Verwijder de class na afloop (zodat je het nog eens kan testen)
-                    setTimeout(() => {
-                        targetElement.classList.remove('flash-target');
-                    }, 2000);
+                    setTimeout(() => targetElement.classList.remove('flash-target'), 2000);
                 }
             }
         });
+
+        // --- 5. HOLD TO DELETE LOGIC ---
+        let holdTimer = null;
+        const HOLD_DURATION = 800;
+        let isHolding = false;
+
+        function startHold(event, cellIndex) {
+            if (event.type === 'mousedown' && event.button !== 0) return;
+            if (gridState[cellIndex] === 0) return;
+
+            // FIX: Verberg tooltip direct als we beginnen met klikken
+            hideTooltip();
+
+            isHolding = true;
+            const cell = document.getElementById(`cell-${cellIndex}`);
+            cell.classList.add('is-holding');
+
+            holdTimer = setTimeout(() => {
+                if (isHolding) {
+                    deleteItem(cellIndex);
+                    isHolding = false;
+                }
+            }, HOLD_DURATION);
+        }
+
+        function cancelHold(cellIndex) {
+            if (!isHolding) return;
+            isHolding = false;
+            clearTimeout(holdTimer);
+            const cell = document.getElementById(`cell-${cellIndex}`);
+            if (cell) cell.classList.remove('is-holding');
+        }
+
+        function deleteItem(cellIndex) {
+            const cell = document.getElementById(`cell-${cellIndex}`);
+            cell.classList.remove('is-holding');
+            playSynthSound('failure'); 
+            applyFunctionToCell(cellIndex, 0); 
+        }
+
     </script>
 
     {{-- DRAG GHOST --}}
@@ -847,12 +848,10 @@
     <div id="hover-tooltip" class="fixed hidden z-[9999] w-64 bg-white rounded-lg shadow-xl border border-gray-200 pointer-events-none transition-opacity duration-200 opacity-0 transform scale-95">
         <div class="p-4">
             <h3 id="tooltip-title" class="text-lg font-bold text-gray-800 mb-2 border-b pb-2">Title</h3>
-
             <div class="mb-3">
                 <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Effect op Omgeving (Radius)</h4>
                 <ul id="tooltip-impacts" class="space-y-1 text-sm"></ul>
             </div>
-
             <div id="tooltip-synergy-section" class="border-t pt-2">
                 <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Ontvangt van Buren</h4>
                 <ul id="tooltip-synergy" class="space-y-1 text-sm"></ul>
