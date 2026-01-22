@@ -3,30 +3,33 @@
 namespace App\Http\Controllers;
 
 use App\Models\SimulationEvent;
-use App\Models\QualityMetric; // Changed from Category
+use App\Models\QualityMetric;
 use App\Models\EventImpact;
+use App\Models\Category;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
     public function index()
     {
-        // Eager load the new relationship
-        $events = SimulationEvent::with('impacts.qualityMetric')->get();
+        // Eager load 'categories' (plural)
+        $events = SimulationEvent::with(['impacts.qualityMetric', 'categories'])->get();
         return view('events.index', compact('events'));
     }
 
     public function create()
     {
-        // Fetch Metrics (e.g. Noise, Air Quality) for the form
         $metrics = QualityMetric::all();
-        return view('events.create', compact('metrics'));
+        $categories = Category::all();
+        return view('events.create', compact('metrics', 'categories'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'categories' => 'nullable|array',         // Expect an array
+            'categories.*' => 'exists:categories,id', // Verify IDs
             'type' => 'required|in:one_off,recurring',
             'duration_minutes' => 'required|integer|min:1',
             'impacts' => 'nullable|array',
@@ -39,30 +42,24 @@ class EventController extends Controller
             'recurrence_interval_minutes' => $request->recurrence_interval_minutes ?? null,
         ]);
 
-        if ($request->impacts) {
-            foreach ($request->impacts as $metricId => $val) {
-                if (!is_null($val) && $val != 0) {
-                    EventImpact::create([
-                        'simulation_event_id' => $event->id,
-                        'quality_metric_id' => $metricId, // Saving Metric ID
-                        'impact' => $val,
-                    ]);
-                }
-            }
+        // Save Multiple Categories
+        if ($request->categories) {
+            $event->categories()->sync($request->categories);
         }
+
+        $this->saveImpacts($event, $request->impacts);
 
         return redirect()->route('events.index')->with('success', 'Event aangemaakt!');
     }
 
     public function edit($id)
     {
-        $event = SimulationEvent::with('impacts')->findOrFail($id);
+        $event = SimulationEvent::with(['impacts', 'categories'])->findOrFail($id);
         $metrics = QualityMetric::all();
-
-        // Map impacts so the view can fill the inputs: [metric_id => impact_value]
+        $categories = Category::all();
         $currentImpacts = $event->impacts->pluck('impact', 'quality_metric_id')->toArray();
 
-        return view('events.edit', compact('event', 'metrics', 'currentImpacts'));
+        return view('events.edit', compact('event', 'metrics', 'categories', 'currentImpacts'));
     }
 
     public function update(Request $request, $id)
@@ -71,6 +68,8 @@ class EventController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'categories' => 'nullable|array',
+            'categories.*' => 'exists:categories,id',
             'type' => 'required|in:one_off,recurring',
             'duration_minutes' => 'required|integer|min:1',
             'impacts' => 'nullable|array',
@@ -83,11 +82,19 @@ class EventController extends Controller
             'recurrence_interval_minutes' => $request->recurrence_interval_minutes ?? null,
         ]);
 
+        // Sync Multiple Categories
+        $event->categories()->sync($request->categories ?? []);
+
         // Sync Impacts
         $event->impacts()->delete();
+        $this->saveImpacts($event, $request->impacts);
 
-        if ($request->impacts) {
-            foreach ($request->impacts as $metricId => $val) {
+        return redirect()->route('events.index')->with('success', 'Event bijgewerkt!');
+    }
+
+    private function saveImpacts($event, $impacts) {
+        if ($impacts) {
+            foreach ($impacts as $metricId => $val) {
                 if (!is_null($val) && $val != 0) {
                     EventImpact::create([
                         'simulation_event_id' => $event->id,
@@ -97,14 +104,7 @@ class EventController extends Controller
                 }
             }
         }
-
-        return redirect()->route('events.index')->with('success', 'Event bijgewerkt!');
     }
 
-    public function destroy($id)
-    {
-        $event = SimulationEvent::findOrFail($id);
-        $event->delete();
-        return back()->with('success', 'Event verwijderd.');
-    }
+    // destroy...
 }

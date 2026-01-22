@@ -11,7 +11,7 @@ use App\Enums\UserRole;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
+   // use WithoutModelEvents;
 
     /**
      * Seed the application's database.
@@ -54,7 +54,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             CityFunctionSeeder::class,
             SimulationEventSeeder::class,
-            QualityMetricSeeder::class
+            //QualityMetricSeeder::class
         ]);
 
         $this->call(CategoryIncompatibilitySeeder::class);

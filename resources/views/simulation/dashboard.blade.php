@@ -34,6 +34,70 @@
         }
 
         .metric-bar { transition: width 0.5s ease-in-out, background-color 0.5s; }
+
+        .neighbor-highlight {
+            background-color: rgba(255, 255, 0, 0.15) !important; /* Gele gloed */
+            box-shadow: inset 0 0 10px rgba(255, 200, 0, 0.5);
+            transition: background-color 0.3s ease;
+        }
+
+        /* NEW: Critical for tooltips to work */
+        .pointer-events-none {
+            pointer-events: none !important;
+        }
+
+        /* Ensure tooltip is always on top */
+        #hover-tooltip {
+            z-index: 9999 !important;
+        }
+
+        .neighbor-highlight {
+            position: relative; /* Ensure ::after is positioned relative to this cell */
+        }
+
+        .neighbor-highlight::after {
+            content: '';
+            position: absolute;
+            inset: 0; /* Cover the whole cell */
+            background-color: rgba(255, 255, 0, 0.2); /* The Yellow Glow */
+            box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.8);
+            z-index: 5; /* Sit ON TOP of the image (z=0) but BELOW text (z=10) */
+            pointer-events: none; /* Let clicks pass through */
+            border-radius: 0.125rem; /* Match rounded-sm */
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+
+       @keyframes flashHighlight {
+            0% { 
+                background-color: rgba(157, 26, 26, 0.1); /* 10% Rood (Licht) */
+                border-color: rgb(157, 26, 26);           /* 100% Rood (Rand) */
+                transform: scale(1.02); 
+                box-shadow: 0 4px 6px -1px rgba(157, 26, 26, 0.2);
+            }
+            50% { 
+                background-color: rgba(157, 26, 26, 0.2); /* Iets donkerder */
+                border-color: rgb(157, 26, 26); 
+                transform: scale(1.02);
+            }
+            100% { 
+                background-color: #f9fafb; /* Terug naar gray-50 */
+                border-color: #e5e7eb;     /* Terug naar gray-200 */
+                transform: scale(1); 
+            }
+        }
+
+        .flash-target {
+            animation: flashHighlight 2s ease-out forwards;
+            z-index: 50; /* Zorg dat hij even boven de rest ligt */
+            position: relative; /* Zorgt dat de schaduw goed zichtbaar is */
+        }
     </style>
 
     <x-slot name="header">
@@ -70,11 +134,25 @@
                                     <ul class="space-y-2">
                                         @foreach($catFunctions as $function)
                                             <li draggable="true"
+                                                id="function-{{ $function['id'] }}"
                                                 ondragstart="drag(event, {{ $function['id'] }})"
                                                 onmousedown="acknowledgeFunction({{ $function['id'] }})"
                                                 class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative">
 
-                                                @if(isset($function['is_new']) && $function['is_new'])
+                                              @php
+                                                    // Bepaal of het nieuw is. 
+                                                    // Logic: Als 'is_new' bestaat, gebruik die. 
+                                                    // Anders: Als 'acknowledged_by_users_exists' bestaat, is het NIEUW als die waarde FALSE (0) is.
+                                                    $showBadge = false;
+                                                    
+                                                    if (isset($function['is_new'])) {
+                                                        $showBadge = $function['is_new'];
+                                                    } elseif (isset($function['acknowledged_by_users_exists'])) {
+                                                        $showBadge = !$function['acknowledged_by_users_exists'];
+                                                    }
+                                                @endphp
+
+                                                @if($showBadge)
                                                     <span id="badge-{{ $function['id'] }}" class="new-badge">NIEUW</span>
                                                 @endif
 
@@ -96,6 +174,7 @@
 
                 {{-- KOLOM 2: The Grid --}}
                 <section class="w-full lg:w-2/4 flex flex-col items-center bg-white shadow-sm sm:rounded-lg p-6 relative">
+                    <div id="live-feedback" class="fixed top-28 left-1/2 transform -translate-x-1/2 z-[100] w-auto min-w-[300px] text-center hidden pointer-events-none transition-all duration-200"></div>
                     <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200">
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
@@ -104,13 +183,18 @@
                                      ondrop="drop(event, {{ $i }})"
                                      ondragover="allowDrop(event, {{ $i }})"
                                      ondragleave="leaveDrag({{ $i }})"
+
+                                     {{-- NEW: Tooltip Triggers --}}
+                                     onmouseenter="showTooltip(event, {{ $i }})"
+                                     onmouseleave="hideTooltip()"
+
                                      class="bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred">
                                     Kavel {{ $i + 1 }}
                                 </div>
                             @endfor
                         </div>
                     </div>
-                    <div id="live-feedback" class="mt-4 w-full p-3 rounded text-sm font-bold text-center hidden"></div>
+
                     <p class="text-center text-xs text-gray-500 mt-2 italic">
                         Sleep functies naar de kavels. Let op de regels!
                     </p>
@@ -400,7 +484,11 @@
                 cell.classList.add('drag-over-invalid');
                 cell.classList.remove('drag-over-valid');
                 ev.dataTransfer.dropEffect = "none";
-                feedbackBar.innerHTML = `<div class="bg-red-100 text-red-700 border border-red-400 px-4 py-2 rounded animate-pulse">${check.message}</div>`;
+                feedbackBar.innerHTML = `
+                    <div class="inline-block bg-red-100 text-red-700 border-2 border-red-400 px-6 py-3 rounded-lg shadow-2xl font-bold text-sm animate-bounce pointer-events-auto">
+                        ️ ${check.message}
+                    </div>
+                `;
                 feedbackBar.classList.remove('hidden');
             }
         }
@@ -438,22 +526,30 @@
 
         function updateCellUI(index, func) {
             const cell = document.getElementById(`cell-${index}`);
-            cell.innerHTML = '';
+            cell.innerHTML = ''; // Clear current content
+
             if(func.id === 'empty') {
                 cell.innerText = `Kavel ${index + 1}`;
                 cell.classList.add('border-gray-300');
-                cell.classList.remove('shadow-sm');
+                cell.classList.remove('shadow-sm', 'border-metro-darkred');
+                // Remove highlight if it was stuck
+                cell.classList.remove('neighbor-highlight');
             } else {
                 cell.classList.remove('border-gray-300');
                 cell.classList.add('shadow-sm');
+
+                // 1. The Image (Background)
                 if (func.image) {
                     const img = document.createElement('img');
                     img.src = func.image;
+                    // CRITICAL: pointer-events-none ensures the mouse "sees" the DIV, not the IMG
                     img.className = 'w-full h-full object-cover absolute top-0 left-0 pointer-events-none';
                     cell.appendChild(img);
                 }
+
+                // 2. The Label (Text)
                 const span = document.createElement('span');
-                span.className = 'font-bold text-[0.7rem] lg:text-sm relative z-10 bg-white/90 px-2 py-0.5 rounded mt-auto mb-1 pointer-events-none';
+                span.className = 'font-bold text-[0.7rem] lg:text-sm relative z-10 bg-white/90 px-2 py-0.5 rounded mt-auto mb-1 pointer-events-none shadow-sm';
                 span.innerText = func.name;
                 span.style.borderBottom = `3px solid ${func.color_hex}`;
                 cell.appendChild(span);
@@ -531,6 +627,214 @@
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 5000);
         }
+
+        // --- TOOLTIP & VISUALISATIE LOGICA (SIM.10) ---
+
+        let hoverTimeout = null; // Voor de 0.5s vertraging
+
+        // Helper: Vind metric naam
+        function getMetricName(id) {
+            const m = metrics.find(x => x.id == id);
+            return m ? m.name : 'Onbekend';
+        }
+
+        // Helper: Vind alle 8 omliggende cellen (Noord, Zuid, Oost, West + Diagonalen)
+        function getSurroundingIndices(index) {
+            const row = Math.floor(index / 4); // Grid is 4 breed
+            const col = index % 4;
+            let indices = [];
+
+            // Loop door grid van 3x3 rondom de cel
+            for (let r = row - 1; r <= row + 1; r++) {
+                for (let c = col - 1; c <= col + 1; c++) {
+                    // Check of we binnen het bord blijven (3 rijen hoog, 4 kolommen breed)
+                    if (r >= 0 && r < 3 && c >= 0 && c < 4) {
+                        const neighborIndex = r * 4 + c;
+                        if (neighborIndex !== index) { // Jezelf niet meetellen
+                            indices.push(neighborIndex);
+                        }
+                    }
+                }
+            }
+            return indices;
+        }
+
+        function showTooltip(event, cellIndex) {
+            // Stap 1: Clear eventuele oude timers zodat we niet flikkeren
+            if (hoverTimeout) clearTimeout(hoverTimeout);
+
+            // Stap 2: Start de vertraging van 0.5 seconde (500ms)
+            hoverTimeout = setTimeout(() => {
+                executeShowTooltip(cellIndex);
+            }, 500); // <--- Acceptatie Criterium: >0.5s
+        }
+
+        function executeShowTooltip(cellIndex) {
+            // 1. Basic Data Validation
+            const funcIndex = gridState[cellIndex];
+            // if (!funcIndex || funcIndex === 0) return;
+
+            const func = availableFunctions[funcIndex];
+            if (!func) return;
+
+            const tooltip = document.getElementById('hover-tooltip');
+            const titleEl = document.getElementById('tooltip-title');
+            const impactsList = document.getElementById('tooltip-impacts');
+            const synergyList = document.getElementById('tooltip-synergy');
+
+            // Set Title
+            titleEl.innerText = func.name;
+
+            // --- A. OUTGOING IMPACTS (Effect on Neighbors) ---
+            impactsList.innerHTML = '';
+            let hasImpacts = false;
+
+            if (func.impacts && typeof func.impacts === 'object') {
+                for (const [metricId, value] of Object.entries(func.impacts)) {
+                    if(value == 0) continue;
+                    hasImpacts = true;
+                    const valNum = Number(value);
+                    const name = getMetricName(metricId);
+                    const colorClass = valNum > 0 ? 'text-green-600' : 'text-red-500'; // Red for negative
+                    const sign = valNum > 0 ? '+' : '';
+
+                    impactsList.innerHTML += `
+                    <li class="flex justify-between items-center border-b border-gray-50 pb-1 last:border-0">
+                        <span class="text-gray-600">${name}</span>
+                        <span class="font-bold ${colorClass} text-xs">${sign}${valNum}</span>
+                    </li>`;
+                }
+            }
+            if (!hasImpacts) impactsList.innerHTML = '<li class="text-gray-400 italic text-xs">Geen uitgaande effecten</li>';
+
+            // --- B. INCOMING SYNERGY (What neighbors do to ME) ---
+            synergyList.innerHTML = '';
+            const neighbors = getSurroundingIndices(cellIndex);
+            let receivedEffects = {}; // Store aggregates: { 'Air Quality': { val: 10, sources: ['Park'] } }
+
+            neighbors.forEach(nIndex => {
+                const nFuncIndex = gridState[nIndex];
+                if (nFuncIndex && nFuncIndex !== 0) {
+                    const neighborFunc = availableFunctions[nFuncIndex];
+
+                    // If neighbor has impacts, add them to my "received" list
+                    if (neighborFunc.impacts) {
+                        for (const [metricId, value] of Object.entries(neighborFunc.impacts)) {
+                            const valNum = Number(value);
+                            if (valNum === 0) continue;
+
+                            const mName = getMetricName(metricId);
+
+                            if (!receivedEffects[mName]) {
+                                receivedEffects[mName] = { value: 0, sources: [] };
+                            }
+
+                            receivedEffects[mName].value += valNum;
+                            // Avoid duplicate source names (e.g. "Park, Park") -> just "Park"
+                            if (!receivedEffects[mName].sources.includes(neighborFunc.name)) {
+                                receivedEffects[mName].sources.push(neighborFunc.name);
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Render Received Effects
+            let hasSynergy = false;
+            for (const [metricName, data] of Object.entries(receivedEffects)) {
+                hasSynergy = true;
+                const colorClass = data.value > 0 ? 'text-green-600' : 'text-red-500';
+                const sign = data.value > 0 ? '+' : '';
+                const sourceText = data.sources.join(', '); // e.g. "Park, Factory"
+
+                synergyList.innerHTML += `
+                <li class="flex justify-between items-start border-b border-gray-50 pb-1 last:border-0">
+                    <div class="flex flex-col leading-tight">
+                        <span class="text-gray-600">${metricName}</span>
+                        <span class="text-[10px] text-gray-400 italic">van: ${sourceText}</span>
+                    </div>
+                    <span class="font-bold ${colorClass} text-xs mt-1">${sign}${data.value}</span>
+                </li>`;
+            }
+
+            if (!hasSynergy) {
+                synergyList.innerHTML = '<li class="text-gray-400 italic text-xs">Geen invloed van buren</li>';
+            }
+
+            // --- C. HIGHLIGHT NEIGHBORS (Visual Scope) ---
+            neighbors.forEach(nIndex => {
+                const el = document.getElementById(`cell-${nIndex}`);
+                if(el) el.classList.add('neighbor-highlight');
+            });
+
+            // --- D. POSITIONING ---
+            const cell = document.getElementById(`cell-${cellIndex}`);
+            const rect = cell.getBoundingClientRect();
+
+            tooltip.classList.remove('hidden');
+            let top = rect.top;
+            let left = rect.right + 10;
+
+            // Screen edge detection
+            if (left + 250 > window.innerWidth) left = rect.left - 270;
+            if (top + 350 > window.innerHeight) top = window.innerHeight - 370; // Adjusted for taller tooltip
+
+            tooltip.style.top = `${top}px`;
+            tooltip.style.left = `${left}px`;
+
+            requestAnimationFrame(() => {
+                tooltip.classList.remove('opacity-0', 'scale-95');
+                tooltip.classList.add('opacity-100', 'scale-100');
+            });
+        }
+
+        function hideTooltip() {
+            // Stop de timer als de muis alweer weg is voordat de 0.5s voorbij is
+            if (hoverTimeout) clearTimeout(hoverTimeout);
+
+            const tooltip = document.getElementById('hover-tooltip');
+
+            // Verberg Tooltip
+            tooltip.classList.remove('opacity-100', 'scale-100');
+            tooltip.classList.add('opacity-0', 'scale-95');
+
+            setTimeout(() => {
+                if(tooltip.classList.contains('opacity-0')) {
+                    tooltip.classList.add('hidden');
+                }
+            }, 200);
+
+            // --- VERWIJDER HIGHLIGHTS ---
+            // We halen simpelweg de class van ALLE cellen af, dat is het veiligst/snelst
+            for(let i=0; i<12; i++) {
+                const el = document.getElementById(`cell-${i}`);
+                if(el) el.classList.remove('neighbor-highlight');
+            }
+        }
+        // --- 4. DEEP LINKING & HIGHLIGHT LOGICA ---
+        document.addEventListener("DOMContentLoaded", () => {
+            // Check of er een hash in de URL staat (bijv. #function-5)
+            if (window.location.hash) {
+                const targetId = window.location.hash.substring(1); // haal '#' weg
+                const targetElement = document.getElementById(targetId);
+
+                if (targetElement) {
+                    // 1. Scroll het element in beeld (in de sidebar scrollcontainer)
+                    targetElement.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+
+                    // 2. Voeg de highlight animatie toe
+                    targetElement.classList.add('flash-target');
+
+                    // 3. Verwijder de class na afloop (zodat je het nog eens kan testen)
+                    setTimeout(() => {
+                        targetElement.classList.remove('flash-target');
+                    }, 2000);
+                }
+            }
+        });
     </script>
 
     {{-- DRAG GHOST --}}
@@ -538,6 +842,22 @@
         <img id="ghost-img" src="" class="absolute top-0 left-0 w-full h-full object-cover hidden">
         <div id="ghost-color-block" class="absolute top-0 left-0 w-full h-full hidden"></div>
         <span id="ghost-label" class="font-bold text-sm leading-tight relative z-10 drop-shadow-md bg-white/90 px-2 py-0.5 rounded mt-auto mb-2 max-w-[90%] truncate text-center">Label</span>
+    </div>
+
+    <div id="hover-tooltip" class="fixed hidden z-[9999] w-64 bg-white rounded-lg shadow-xl border border-gray-200 pointer-events-none transition-opacity duration-200 opacity-0 transform scale-95">
+        <div class="p-4">
+            <h3 id="tooltip-title" class="text-lg font-bold text-gray-800 mb-2 border-b pb-2">Title</h3>
+
+            <div class="mb-3">
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Effect op Omgeving (Radius)</h4>
+                <ul id="tooltip-impacts" class="space-y-1 text-sm"></ul>
+            </div>
+
+            <div id="tooltip-synergy-section" class="border-t pt-2">
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Ontvangt van Buren</h4>
+                <ul id="tooltip-synergy" class="space-y-1 text-sm"></ul>
+            </div>
+        </div>
     </div>
 
 </x-app-layout>

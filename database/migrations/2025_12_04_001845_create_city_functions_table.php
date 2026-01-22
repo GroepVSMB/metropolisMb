@@ -11,13 +11,12 @@ return new class extends Migration
     {
         Schema::create('city_functions', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); 
-            
+            $table->string('name');
+
             // Correct way: Just put the line here. REMOVE ->after('name')
-            $table->string('image')->nullable(); 
+            $table->string('image')->nullable();
 
             $table->foreignIdFor(Category::class)->constrained()->cascadeOnDelete();
-            $table->integer('livability_number');
             $table->timestamps();
         });
     }
