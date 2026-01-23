@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany; // Import this
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class CityFunction extends Model
 {
+    use HasFactory;
     protected $fillable = ['name', 'category_id', 'livability_number', 'image'];
 
     public function category(): BelongsTo
