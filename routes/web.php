@@ -7,7 +7,7 @@ use App\Http\Controllers\RuleController;
 use App\Http\Controllers\EventController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
-
+use App\Http\Controllers\CommentController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -65,16 +65,39 @@ Route::middleware(['auth', 'verified', 'role:manager'])->group(function () {
     Route::post('/library/matrix', [LibraryController::class, 'updateEffectsMatrix'])->name('library.matrix.update');
 });
 
-// 4. Planner Routes
-Route::middleware(['auth', 'role:planner'])->group(function () {
-    // If you haven't created PlannerController yet, change this back to a closure.
-    Route::get('/simulation', [SimulationController::class, 'index'])->name('simulation.dashboard');
-    // NEW: Acknowledgement Route
-    Route::post('/simulation/acknowledge/{id}', [SimulationController::class, 'acknowledgeFunction'])->name('simulation.acknowledge');
 
-    // event
+// 4. Simulation & Shared Routes (Planner & Policy Maker)
+// We geven hier TWEE rollen mee (gescheiden door komma). 
+// Dit betekent: Als je Planner BENT OF Policy Maker BENT, mag je erin.
+Route::middleware(['auth', 'role:planner,policy_maker'])->group(function () {
+    
+    // De hoofd-simulatie pagina (Dashboard)
+    Route::get('/simulation', [SimulationController::class, 'index'])->name('simulation.dashboard');
+    
+    // Het wegklikken van "Nieuw" notificaties (geldt voor beide)
+    Route::post('/simulation/acknowledge/{id}', [SimulationController::class, 'acknowledgeFunction'])->name('simulation.acknowledge');
+ Route::get('/comments', [CommentController::class, 'index']);
+    Route::post('/comments', [CommentController::class, 'store']);
+     Route::post('/comments/{comment}/resolve', [CommentController::class, 'resolve']);
+});
+
+// 5. Planner Specific Routes (Alleen Planner)
+Route::middleware(['auth', 'role:planner'])->group(function () {
+    // Events beheren mag alleen de planner
     Route::resource('events', EventController::class);
 });
+
+// 6. Policy Maker Specific Routes (Alleen Policy Maker)
+Route::middleware(['auth', 'role:policy_maker'])->group(function () {
+    // Comment Routes (API endpoints voor opslaan/verwijderen)
+   
+    
+    // Let op: Resolven mag vaak door beiden, maar verwijderen alleen door eigenaar. 
+    // We laten de routes hier open staan, de controller checkt eigenaarschap.
+       
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
+});
+
 
 // 5. Profile Routes
 Route::middleware('auth')->group(function () {
@@ -87,5 +110,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/mark-all', [NotificationController::class, 'markAllRead'])->name('notifications.markAll');
 });
+
+
 
 require __DIR__.'/auth.php';

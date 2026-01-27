@@ -43,18 +43,23 @@
                     @endif
 
                     {{-- PLANNER ONLY --}}
-                    @if(Auth::check() && Auth::user()->hasRole('planner'))
+                    @if(Auth::check() && (Auth::user()->hasRole('planner') || Auth::user()->hasRole('policy_maker')))
                         <x-nav-link :href="route('simulation.dashboard')" :active="request()->routeIs('simulation.dashboard')"
                                     class="border-transparent text-gray-500 hover:text-metro-darkred hover:border-metro-darkred focus:text-metro-darkred focus:border-metro-darkred {{ request()->routeIs('simulation.dashboard') ? '!border-metro-darkred !text-metro-darkred' : '' }}">
                             {{ __('Simulatie') }}
                         </x-nav-link>
 
+                    @endif
+
+
+                    @if(Auth::check() && Auth::user()->hasRole('planner'))
                           <x-nav-link :href="route('events.index')" :active="request()->routeIs('events.index')"
                                     class="border-transparent text-gray-500 hover:text-metro-darkred hover:border-metro-darkred focus:text-metro-darkred focus:border-metro-darkred {{ request()->routeIs('events.index') ? '!border-metro-darkred !text-metro-darkred' : '' }}">
                             {{ __('Events') }}
                         </x-nav-link>
                     @endif
 
+                  
                 </div>
             </div>
 

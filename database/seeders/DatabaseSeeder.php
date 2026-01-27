@@ -50,11 +50,20 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('wachtwoord'),
         ]);
 
+
+        User::factory()->create([
+            'name' => 'Beleidsmaker',
+            'email' => 'policy@test.com',
+            'role' => UserRole::POLICY_MAKER,
+            'password' => Hash::make('wachtwoord'),
+        ]);
+
         $this->call([
             CategorySeeder::class,
             CityFunctionSeeder::class,
             SimulationEventSeeder::class,
             //QualityMetricSeeder::class
+            CommentSeeder::class
         ]);
 
         $this->call(CategoryIncompatibilitySeeder::class);
