@@ -139,6 +139,27 @@
             75% { transform: rotate(-1deg); }
             100% { transform: rotate(0deg); }
         }
+
+        /* --- KEYBOARD ACCESSIBILITY STYLES --- */
+/* Duidelijke focus ring voor keyboard navigatie */
+.function-item:focus-visible, 
+.cell-content:focus-visible {
+    outline: 3px solid #3b82f6; /* Helder blauw */
+    outline-offset: 2px;
+    z-index: 50;
+}
+
+/* Wanneer een item in de lijst is 'geselecteerd' met Enter */
+.keyboard-selected {
+    background-color: #fee2e2 !important; /* Licht rood */
+    border-color: #b91c1c !important;     /* Donker rood */
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.3);
+}
+
+/* Wanneer een item geselecteerd is, verander de cursor op het grid */
+.keyboard-mode-active .cell-content {
+    cursor: copy; /* Visuele hint */
+}
     </style>
 
     <x-slot name="header">
@@ -150,12 +171,14 @@
     <div class="py-12 simulation-container">
         <div class="max-w-[1600px] mx-auto sm:px-6 lg:px-8">
 
-            {{-- ERROR TOAST --}}
-            <div id="error-toast" class="hidden fixed top-20 right-5 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50 transition-opacity duration-300 flex items-center">
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          {{-- MELDING TOAST (Dynamisch: Rood of Blauw) --}}
+            <div id="toast-message" class="hidden fixed top-20 right-5 border px-4 py-3 rounded shadow-lg z-50 transition-opacity duration-300 flex items-center bg-red-100 border-red-400 text-red-700">
+                <svg id="toast-icon-error" class="w-6 h-6 mr-2 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <svg id="toast-icon-info" class="w-6 h-6 mr-2 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                
                 <div>
-                    <strong class="font-bold">Niet toegestaan!</strong>
-                    <span class="block text-sm" id="error-text">Reden onbekend.</span>
+                    <strong id="toast-title" class="font-bold">Melding</strong>
+                    <span class="block text-sm" id="toast-text">Tekst hier.</span>
                 </div>
             </div>
 
@@ -174,11 +197,18 @@
                                     <h3 class="text-xs uppercase font-bold text-gray-400 mb-2 tracking-wider">{{ $categoryName }}</h3>
                                     <ul class="space-y-2">
                                         @foreach($catFunctions as $function)
-                                            <li draggable="true"
-                                                id="function-{{ $function['id'] }}"
-                                                ondragstart="drag(event, {{ $function['id'] }})"
-                                                onmousedown="acknowledgeFunction({{ $function['id'] }})"
-                                                class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative">
+                                          <li draggable="true"
+    id="function-{{ $function['id'] }}"
+    {{-- ACCESSIBILITY ATTRIBUTES --}}
+    tabindex="0"
+    role="button"
+    aria-label="{{ $function['name'] }}. Druk op Enter om te selecteren."
+    onkeydown="handleSidebarKey(event, {{ $function['id'] }})"
+    {{-- END ACCESSIBILITY --}}
+    
+    ondragstart="drag(event, {{ $function['id'] }})"
+    onmousedown="acknowledgeFunction({{ $function['id'] }})"
+    class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative focus:outline-none">
 
                                                 @php
                                                     $showBadge = false;
@@ -210,18 +240,82 @@
                 </aside>
 
                 {{-- KOLOM 2: The Grid --}}
-                <section class="w-full lg:w-2/4 flex flex-col items-center bg-white shadow-sm sm:rounded-lg p-6 relative">
+               {{-- KOLOM 2: The Grid --}}
+                <section class="w-full lg:w-2/4 flex flex-col bg-white shadow-sm sm:rounded-lg p-6 relative" x-data="{ showHelp: false }">
+                    
+                    {{-- HEADER & HELP KNOP --}}
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+                        <h3 class="font-bold text-gray-700 text-lg">Stadsindeling</h3>
+                        <button @click="showHelp = !showHelp" 
+                                class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center bg-blue-50 px-3 py-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Instructies & Controls
+                        </button>
+                    </div>
+
+                    {{-- INSTRUCTIE PANEEL (Inklapbaar) --}}
+                    <div x-show="showHelp" 
+                         style="display: none;"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 -translate-y-2"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4 text-sm text-gray-700 shadow-inner">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {{-- Muis Instructies --}}
+                            <div>
+                                <h4 class="font-bold text-blue-800 mb-1 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                                    Muis
+                                </h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs text-gray-600 ml-1">
+                                    <li><strong>Slepen:</strong> Sleep functies van links naar het grid.</li>
+                                    <li><strong>Verwijderen:</strong> Houd een kavel <span class="font-bold text-red-600">ingedrukt</span> (long-press).</li>
+                                    <li><strong>Details:</strong> Beweeg muis over een kavel voor info.</li>
+                                </ul>
+                            </div>
+
+                            {{-- Toetsenbord Instructies --}}
+                            <div>
+                                <h4 class="font-bold text-blue-800 mb-1 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                                    Toetsenbord
+                                </h4>
+                                <ul class="space-y-1 text-xs text-gray-600">
+                                    <li><kbd class="bg-white border rounded px-1 font-mono">Tab</kbd> Navigeren tussen items.</li>
+                                    <li><kbd class="bg-white border rounded px-1 font-mono">Enter</kbd> Selecteer item (links) of Plaats item (grid).</li>
+                                    <li><kbd class="bg-white border rounded px-1 font-mono">Del</kbd> Kavel leegmaken.</li>
+                                    <li><kbd class="bg-white border rounded px-1 font-mono">Esc</kbd> Selectie annuleren.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-blue-400 mt-2 italic border-t border-blue-200 pt-1">
+                            Tip: Gebruik de toegankelijkheidsknop rechtsonder voor vergroting of voorleeshulp.
+                        </p>
+                    </div>
+
+                    {{-- LIVE FEEDBACK (Bestaand) --}}
                     <div id="live-feedback" class="fixed top-28 left-1/2 transform -translate-x-1/2 z-[100] w-auto min-w-[300px] text-center hidden pointer-events-none transition-all duration-200"></div>
-                    <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200">
+                    
+                    {{-- THE GRID CONTAINER --}}
+                    <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 flex flex-col items-center justify-center">
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
                                 <div id="cell-{{ $i }}"
-                                     {{-- MOUSE EVENTS (Hold to Delete) --}}
+                                     {{-- ACCESSIBILITY ATTRIBUTES --}}
+                                     tabindex="0"
+                                     role="button"
+                                     aria-label="Kavel {{ $i + 1 }}. Druk op Enter om te plaatsen, Delete om te verwijderen."
+                                     onkeydown="handleGridKey(event, {{ $i }})"
+                                     
+                                     {{-- MOUSE EVENTS --}}
                                      onmousedown="startHold(event, {{ $i }})"
                                      onmouseup="cancelHold({{ $i }})"
                                      onmouseleave="cancelHold({{ $i }}); hideTooltip()"
                                      
-                                     {{-- TOUCH EVENTS (Mobile) --}}
+                                     {{-- TOUCH EVENTS --}}
                                      ontouchstart="startHold(event, {{ $i }})"
                                      ontouchend="cancelHold({{ $i }})"
 
@@ -233,20 +327,14 @@
                                      {{-- TOOLTIP --}}
                                      onmouseenter="showTooltip(event, {{ $i }})"
                                      
-                                     class="bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred cell-content">
+                                     class="bg-white border border-gray-300 flex flex-col items-center justify-center text-center cursor-pointer text-xs lg:text-sm text-gray-400 transition-all select-none p-1 overflow-hidden active:scale-95 relative rounded-sm shadow-sm hover:border-metro-darkred cell-content focus:outline-none">
                                     
-                                    {{-- De overlay div voor Hold-to-Delete --}}
                                     <div id="overlay-{{ $i }}" class="delete-overlay"></div>
-
                                     <span class="z-10 pointer-events-none">Kavel {{ $i + 1 }}</span>
                                 </div>
                             @endfor
                         </div>
                     </div>
-
-                    <p class="text-center text-xs text-gray-500 mt-2 italic">
-                        Houd ingedrukt om te verwijderen. Sleep nieuwe functies naar de kavels.
-                    </p>
                 </section>
 
                 {{-- KOLOM 3: Score & Metrics --}}
@@ -321,6 +409,80 @@
 
     {{-- JAVASCRIPT LOGIC --}}
     <script>
+
+       // --- KEYBOARD ACCESSIBILITY LOGIC (UPDATED) ---
+        let keyboardSourceId = null;
+
+        // 1. GLOBALE ESCAPE LISTENER (Werkt overal)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (keyboardSourceId !== null) {
+                    cancelSelection();
+                }
+            }
+        });
+
+        function cancelSelection() {
+            keyboardSourceId = null;
+            document.querySelectorAll('.keyboard-selected').forEach(el => el.classList.remove('keyboard-selected'));
+            document.body.classList.remove('keyboard-mode-active');
+            showNotification("Selectie geannuleerd.", "info");
+        }
+
+        function handleSidebarKey(e, dbId) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                
+                // Reset vorige
+                document.querySelectorAll('.keyboard-selected').forEach(el => el.classList.remove('keyboard-selected'));
+                
+                // Selecteer nieuwe
+                keyboardSourceId = dbId;
+                const el = document.getElementById(`function-${dbId}`);
+                if (el) el.classList.add('keyboard-selected');
+
+                document.body.classList.add('keyboard-mode-active');
+                
+                // HIER IS DE FIX: Gebruik 'info' type (Blauw)
+                showNotification("Item geselecteerd. Druk op Enter in het grid om te plaatsen.", "info");
+                
+                playSynthSound('success');
+            }
+        }
+
+        function handleGridKey(e, cellIndex) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+
+                if (keyboardSourceId === null) {
+                    showNotification("Selecteer eerst een functie uit de linker lijst.", "error");
+                    return;
+                }
+
+                const func = availableFunctions.find(f => f.id === keyboardSourceId);
+                const funcIndex = availableFunctions.indexOf(func);
+                const check = checkAdjacency(cellIndex, funcIndex);
+
+                if (!check.valid) {
+                    showNotification(check.message, "error"); // Rood
+                    playSynthSound('failure');
+                    return;
+                }
+
+                applyFunctionToCell(cellIndex, funcIndex);
+                playSynthSound('success');
+                
+                // Optioneel: reset na plaatsen
+                // cancelSelection(); 
+            }
+
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (gridState[cellIndex] !== 0) {
+                    deleteItem(cellIndex);
+                    showNotification(`Kavel ${cellIndex + 1} leeggemaakt.`, "info");
+                }
+            }
+        }
         const availableFunctions = [
             { id: 'empty', name: 'Kavel', color_hex: '#ffffff', category: 'Leeg', livability: 0, image: null, impacts: {} },
             ...(@json($jsFunctionsData))
@@ -836,6 +998,37 @@
             applyFunctionToCell(cellIndex, 0); 
         }
 
+        function showNotification(msg, type = 'error') {
+            const toast = document.getElementById('toast-message');
+            const title = document.getElementById('toast-title');
+            const text = document.getElementById('toast-text');
+            const iconError = document.getElementById('toast-icon-error');
+            const iconInfo = document.getElementById('toast-icon-info');
+
+            // Reset classes
+            toast.className = 'fixed top-20 right-5 border px-4 py-3 rounded shadow-lg z-50 transition-opacity duration-300 flex items-center';
+
+            if (type === 'success' || type === 'info') {
+                // BLAUWE STIJL (Voor selectie)
+                toast.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                title.innerText = "Info";
+                iconError.classList.add('hidden');
+                iconInfo.classList.remove('hidden');
+            } else {
+                // RODE STIJL (Voor fouten)
+                toast.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                title.innerText = "Niet toegestaan!";
+                iconError.classList.remove('hidden');
+                iconInfo.classList.add('hidden');
+            }
+
+            text.innerText = msg;
+            toast.classList.remove('hidden');
+            
+            // Verberg na 4 seconden
+            if (window.toastTimer) clearTimeout(window.toastTimer);
+            window.toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
     </script>
 
     {{-- DRAG GHOST --}}
