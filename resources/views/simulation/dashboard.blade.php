@@ -160,6 +160,28 @@
 .keyboard-mode-active .cell-content {
     cursor: copy; /* Visuele hint */
 }
+.comment-icon {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 24px;
+    height: 24px;
+    background-color: #f59e0b; /* Yellow-500 */
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    z-index: 40;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    border: 2px solid white;
+}
+.comment-icon.resolved {
+    background-color: #10b981; /* Green-500 */
+    opacity: 0.6;
+}
     </style>
 
     <x-slot name="header">
@@ -303,7 +325,7 @@
                     <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 flex flex-col items-center justify-center">
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
-                                <div id="cell-{{ $i }}"
+                                <div id="cell-{{ $i }}" onclick="handleCellClick({{ $i }})"
                                      {{-- ACCESSIBILITY ATTRIBUTES --}}
                                      tabindex="0"
                                      role="button"
@@ -339,7 +361,86 @@
 
                 {{-- KOLOM 3: Score & Metrics --}}
                 <aside class="w-full lg:w-1/4 min-w-[250px] flex flex-col gap-5">
+                                    {{-- COMMENT TOOLS --}}
 
+                @if(Auth::check() &&Auth::user()->hasRole('policy_maker'))
+                      <div class="mb-4 flex items-center space-x-4 bg-yellow-50 p-3 rounded border border-yellow-200" x-data>
+                    <button id="toggle-comment-mode" 
+                            onclick="toggleCommentMode()" 
+                            class="flex items-center px-4 py-2 bg-yellow-500 text-white rounded shadow hover:bg-yellow-600 transition font-bold">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
+                        <span id="comment-mode-text">Notitie Modus: UIT</span>
+                    </button>
+                    <p class="text-xs text-yellow-800">
+                        Klik op deze knop om notities te plaatsen. Klik daarna op een kavel.
+                    </p>
+                </div>
+
+                @endif
+               
+{{-- ADD COMMENT MODAL (Geoptimaliseerd) --}}
+<div id="comment-modal" class="fixed inset-0 z-[100] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center transition-all duration-300">
+    {{-- VERWIJDERD: backdrop-blur-sm (Dit is vaak de oorzaak van lag) --}}
+    
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform scale-100 transition-transform">
+        <h3 class="font-bold text-lg mb-4 text-gray-800">Notitie toevoegen</h3>
+        
+        <textarea id="new-comment-text" 
+                  {{-- NIEUW: Stop event propagation zodat de rest van de app niet meeluistert --}}
+                  onkeydown="event.stopPropagation()"
+                  class="w-full border-gray-300 rounded-lg shadow-sm p-3 mb-4 focus:border-blue-500 focus:ring focus:ring-blue-200 transition-all" 
+                  rows="3" 
+                  placeholder="Typ hier je opmerking voor de planners..."></textarea>
+        
+        <div class="flex justify-end space-x-2">
+            <button onclick="closeCommentModal()" 
+                    class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg font-medium transition-colors">
+                Annuleren
+            </button>
+            <button onclick="saveComment()" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-colors font-bold flex items-center">
+                <span>Opslaan</span>
+            </button>
+        </div>
+    </div>
+</div>
+{{-- COMMENT MODAL (Verborgen) --}}
+{{-- VIEW COMMENT MODAL --}}
+<div id="view-comment-modal" class="fixed inset-0 z-[110] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center transition-all duration-300">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform scale-100 transition-transform">
+        
+        {{-- Header --}}
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h3 id="view-comment-author" class="font-bold text-lg text-gray-800">Naam Auteur</h3>
+                <span id="view-comment-date" class="text-xs text-gray-400">Datum</span>
+            </div>
+            <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        {{-- Content --}}
+        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 mb-6 text-gray-700 italic" id="view-comment-content">
+            "Hier komt de tekst..."
+        </div>
+
+        {{-- Actions --}}
+        <div class="flex flex-col gap-2">
+            
+            {{-- RESOLVE BUTTON (Alleen voor Planners/Admins) --}}
+            <button id="btn-resolve" onclick="resolveCurrentComment()" class="w-full py-2 px-4 rounded font-bold text-white transition-colors flex justify-center items-center">
+                </button>
+            @if(Auth::check() &&Auth::user()->hasRole('policy_maker'))
+            {{-- DELETE BUTTON (Alleen voor de eigenaar) --}}
+            <button id="btn-delete" onclick="deleteCurrentComment()" class="w-full py-2 px-4 bg-red-100 text-red-700 border border-red-200 rounded hover:bg-red-200 transition font-medium flex justify-center items-center mt-2">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                Verwijderen
+            </button>
+            @endif
+        </div>
+    </div>
+</div>
                     {{-- 1. GLOBAL AVERAGE SCORE CARD --}}
                     <article class="bg-[#448a28] p-5 text-white font-bold flex justify-between items-center shadow-lg rounded-lg transform hover:scale-105 transition-transform relative overflow-hidden">
                         <div class="flex flex-col z-10">
@@ -409,6 +510,8 @@
 
     {{-- JAVASCRIPT LOGIC --}}
     <script>
+        const currentUserId = {{ auth()->id() }};
+    const currentUserRole = "{{ auth()->user()->role->value ?? 'guest' }}"; // Voor de zekerheid
 
        // --- KEYBOARD ACCESSIBILITY LOGIC (UPDATED) ---
         let keyboardSourceId = null;
@@ -707,10 +810,23 @@
             applyFunctionToCell(cellIndex, funcIndex);
         }
 
-        function applyFunctionToCell(cellIndex, funcIndex) {
+      function applyFunctionToCell(cellIndex, funcIndex) {
+            // 1. Update de status in het geheugen
             gridState[cellIndex] = funcIndex;
+            
+            // 2. Teken de nieuwe inhoud van de cel (Functie plaatje of leeg)
+            // Dit wist tijdelijk ook het comment-icoon!
             updateCellUI(cellIndex, availableFunctions[funcIndex]);
+            
+            // 3. Herbereken scores
             calculateMetrics();
+            
+            // --- FIX: Zet de comment iconen direct weer terug ---
+            // Omdat updateCellUI de HTML heeft gewist, moeten we ze opnieuw tekenen.
+            // De CSS z-index (40) zorgt dat hij bovenop de nieuwe afbeelding komt.
+            if (typeof renderComments === 'function') {
+                renderComments();
+            }
         }
 
         function updateCellUI(index, func) {
@@ -1029,6 +1145,197 @@
             if (window.toastTimer) clearTimeout(window.toastTimer);
             window.toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
         }
+
+        // --- REV.2: COMMENTS LOGIC ---
+let commentMode = false;
+let activeCommentCell = null;
+let allComments = [];
+
+// 1. Initialisatie
+document.addEventListener('DOMContentLoaded', () => {
+    fetchComments();
+});
+
+function fetchComments() {
+    fetch('/comments')
+        .then(r => r.json())
+        .then(data => {
+            allComments = data;
+            renderComments();
+        });
+}
+
+// 2. Modus Schakelen
+function toggleCommentMode() {
+    commentMode = !commentMode;
+    const btn = document.getElementById('toggle-comment-mode');
+    const txt = document.getElementById('comment-mode-text');
+    
+    if (commentMode) {
+        btn.classList.replace('bg-yellow-500', 'bg-red-500');
+        txt.innerText = "Notitie Modus: AAN";
+        document.body.style.cursor = "help"; // Verander cursor
+    } else {
+        btn.classList.replace('bg-red-500', 'bg-yellow-500');
+        txt.innerText = "Notitie Modus: UIT";
+        document.body.style.cursor = "default";
+    }
+}
+
+// 3. Grid Click Interceptie (Pas je bestaande startHold/Click logic aan!)
+// Je moet in je HTML de onclick van de cell aanpassen of een nieuwe functie maken.
+// Beter: Voeg dit toe aan je startHold of maak een aparte 'handleCellClick' functie.
+
+function handleCellClick(index) {
+    if (commentMode) {
+        // Open Modal
+        activeCommentCell = index;
+        document.getElementById('comment-modal').classList.remove('hidden');
+        document.getElementById('new-comment-text').focus();
+        return true; // Stop andere acties
+    }
+    return false; // Ga door met normale acties (slepen/verwijderen)
+}
+
+function closeCommentModal() {
+    document.getElementById('comment-modal').classList.add('hidden');
+    document.getElementById('new-comment-text').value = '';
+}
+
+function saveComment() {
+    const content = document.getElementById('new-comment-text').value;
+    if (!content) return;
+
+    fetch('/comments', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ 
+            grid_index: activeCommentCell, 
+            content: content 
+        })
+    })
+    .then(r => r.json())
+    .then(newComment => {
+        allComments.push(newComment);
+        renderComments();
+        closeCommentModal();
+        toggleCommentMode(); // Zet modus uit na plaatsen (optioneel)
+    });
+}
+
+// 4. Renderen op Grid
+function renderComments() {
+    // Verwijder oude iconen
+    document.querySelectorAll('.comment-icon').forEach(e => e.remove());
+
+    allComments.forEach(comment => {
+        const cell = document.getElementById(`cell-${comment.grid_index}`);
+        if (!cell) return;
+
+        const icon = document.createElement('div');
+        icon.className = `comment-icon ${comment.is_resolved ? 'resolved' : ''}`;
+        icon.innerHTML = '💬';
+        icon.title = `${comment.user.name}: ${comment.content}`;
+        
+        // Klik op icon om te lezen/resolven
+        icon.onclick = (e) => {
+            e.stopPropagation(); // Voorkom dat je de cell eronder klikt
+            showCommentDetails(comment);
+        };
+
+        cell.appendChild(icon);
+    });
+}
+
+// Variabele om bij te houden welke comment open staat
+    let openCommentId = null;
+
+    function showCommentDetails(comment) {
+        openCommentId = comment.id;
+        const modal = document.getElementById('view-comment-modal');
+        
+        // 1. Vul de data in
+        document.getElementById('view-comment-author').innerText = comment.user.name;
+        document.getElementById('view-comment-content').innerText = `"${comment.content}"`;
+        
+        // Datum mooi formatteren
+        const date = new Date(comment.created_at);
+        document.getElementById('view-comment-date').innerText = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        // 2. Setup Resolve Knop (Status checken)
+        const resolveBtn = document.getElementById('btn-resolve');
+        if (comment.is_resolved) {
+            resolveBtn.className = "w-full py-2 px-4 rounded font-bold text-white bg-gray-400 hover:bg-gray-500";
+            resolveBtn.innerHTML = "🔓 Heropenen";
+        } else {
+            resolveBtn.className = "w-full py-2 px-4 rounded font-bold text-white bg-green-500 hover:bg-green-600";
+            resolveBtn.innerHTML = "✅ Markeren als Opgelost";
+        }
+
+        // // 3. Setup Delete Knop (Alleen tonen als jij de eigenaar bent)
+        // const deleteBtn = document.getElementById('btn-delete');
+        // if (comment.user_id === currentUserId) {
+        //     deleteBtn.classList.remove('hidden');
+        // } else {
+        //     deleteBtn.classList.add('hidden');
+        // }
+
+        // 4. Toon de modal
+        modal.classList.remove('hidden');
+    }
+
+    function closeViewModal() {
+        document.getElementById('view-comment-modal').classList.add('hidden');
+        openCommentId = null;
+    }
+
+    // --- ACTIES ---
+
+    function resolveCurrentComment() {
+        if (!openCommentId) return;
+
+        fetch(`/comments/${openCommentId}/resolve`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+        })
+        .then(r => r.json())
+        .then(updatedComment => {
+            // Update lokale lijst en her-render
+            const index = allComments.findIndex(c => c.id === updatedComment.id);
+            if(index !== -1) allComments[index] = updatedComment;
+            
+            renderComments();
+            closeViewModal();
+            showNotification("Status aangepast!", "success");
+        });
+    }
+
+    function deleteCurrentComment() {
+        if (!openCommentId) return;
+        
+       
+
+        fetch(`/comments/${openCommentId}`, {
+            method: 'DELETE',
+            headers: { 
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Verwijder uit lokale array
+                allComments = allComments.filter(c => c.id !== openCommentId);
+                renderComments();
+                closeViewModal();
+                showNotification("Notitie verwijderd.", "info");
+            } else {
+                showNotification("Fout bij verwijderen.", "error");
+            }
+        });
+    }
     </script>
 
     {{-- DRAG GHOST --}}

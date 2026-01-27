@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('name');
 
             // Correct way: Just put the line here. REMOVE ->after('name')
-            $table->string('image')->nullable();
+            $table->text('image')->nullable();
 
             $table->foreignIdFor(Category::class)->constrained()->cascadeOnDelete();
             $table->timestamps();

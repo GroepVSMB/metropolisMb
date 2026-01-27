@@ -9,7 +9,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string $role): Response
+    // LET OP: Verander 'string $role' naar '...$roles' (de drie puntjes zijn belangrijk!)
+    public function handle(Request $request, Closure $next, ...$roles): Response
     {
         if (! $request->user()) {
             return redirect('/login');
@@ -17,22 +18,21 @@ class RoleMiddleware
 
         $userRole = $request->user()->role;
 
-        // 1. If the role is an Enum Object, extract the string value
+        // 1. Haal de string waarde uit de Enum
         if ($userRole instanceof \BackedEnum) {
             $userRole = $userRole->value;
         }
 
-        // --- NEW CODE START ---
-        // Grant "Super Access" if the user is an Admin.
-        // We check against the Enum value (safest) or the hardcoded string 'admin'.
+        // 2. Admin mag altijd alles (Super Access)
         if ($userRole === UserRole::ADMIN->value || strtolower($userRole) === 'admin') {
             return $next($request);
         }
-        // --- NEW CODE END ---
 
-        // 2. Perform the comparison (String vs String)
-        if (strtolower($userRole) !== strtolower($role)) {
-            abort(403, "Je hebt geen toegang tot deze pagina. Jij hebt niet de role: $role");
+        // 3. Check of de rol van de user in de lijst met toegestane rollen staat.
+        // We checken nu of $userRole voorkomt in de array $roles.
+        if (! in_array($userRole, $roles)) {
+            // We tonen de vereiste rollen in de foutmelding voor duidelijkheid
+            abort(403, "Je hebt geen toegang tot deze pagina. Vereiste rol(len): " . implode(', ', $roles));
         }
 
         return $next($request);
