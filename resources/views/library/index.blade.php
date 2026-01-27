@@ -10,15 +10,41 @@
     <div class="py-12 bg-gray-50 min-h-screen" x-data="{ showModal: false, activeItem: null }">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
+            {{-- === NIEUW: Zoekbalk (SIM.7) === --}}
+            <div class="mb-8 relative max-w-md mx-auto sm:mx-0">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" 
+                       id="library-search" 
+                       onkeyup="filterLibrary()" 
+                       class="pl-10 pr-10 py-3 w-full border-gray-300 rounded-lg shadow-sm focus:border-metro-darkred focus:ring focus:ring-red-200 focus:ring-opacity-50 transition-shadow" 
+                       placeholder="Zoek op naam (bijv. 'Huis')...">
+                
+                {{-- Clear Button --}}
+                <button id="clear-search-btn" 
+                        onclick="clearSearch()" 
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            {{-- No Results Message --}}
+            <div id="no-results-msg" class="hidden text-center py-10">
+                <p class="text-gray-500 text-lg">Geen functies gevonden die aan je zoekopdracht voldoen.</p>
+                <button onclick="clearSearch()" class="mt-2 text-metro-darkred hover:underline font-medium">Zoekopdracht wissen</button>
+            </div>
+
             {{-- Loop through the Groups (Categories) --}}
             @foreach($groupedFunctions as $categoryName => $items)
-                <div class="mb-12">
+                {{-- Added class 'category-section' for filtering --}}
+                <div class="mb-12 category-section">
                     {{-- Category Title --}}
                     <div class="flex items-center mb-6 border-b border-gray-200 pb-2">
                         <h3 class="text-2xl font-bold text-gray-800 tracking-tight mr-4">
                             {{ $categoryName }}
                         </h3>
-                        <span class="text-sm font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                        <span class="text-sm font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full count-badge">
                             {{ count($items) }} items
                         </span>
                     </div>
@@ -27,10 +53,10 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
                         @foreach($items as $function)
-                            {{-- 2. FIXED CLICK HANDLER --}}
-                            {{-- We find the item in the JS array by ID, preventing syntax errors --}}
+                            {{-- Added class 'function-card' and data-name attribute --}}
                             <div @click="activeItem = window.cityFunctions.find(f => f.id === {{ $function->id }}); showModal = true"
-                                 class="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col h-full transform hover:-translate-y-1 cursor-pointer">
+                                 data-name="{{ strtolower($function->name) }}"
+                                 class="function-card group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col h-full transform hover:-translate-y-1 cursor-pointer">
 
                                 {{-- Image Section --}}
                                 <div class="relative h-48 bg-gray-100 overflow-hidden">
@@ -80,7 +106,7 @@
 
         </div>
 
-        {{-- 3. THE MODAL --}}
+        {{-- 3. THE MODAL (Ongewijzigd gebleven) --}}
         <div x-show="showModal"
              style="display: none;"
              class="fixed inset-0 z-50 overflow-y-auto"
@@ -129,7 +155,6 @@
                                 <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                                     <div>
                                         <p class="text-xs text-gray-500 uppercase font-bold">Categorie</p>
-                                        {{-- Fixed: matches controller JSON structure (string) --}}
                                         <p class="text-sm font-medium text-gray-900" x-text="activeItem?.category || 'Onbekend'"></p>
                                     </div>
                                     <div>
@@ -167,8 +192,71 @@
 
     </div>
 
-    {{-- THIS SCRIPT IS REQUIRED for the modal to work --}}
+    {{-- REQUIRED SCRIPTS --}}
     <script>
+        // Data voor de modal
         window.cityFunctions = @json($jsFunctionsData ?? []);
+
+        // --- SIM.7: SEARCH LOGIC ---
+        function filterLibrary() {
+            const input = document.getElementById('library-search');
+            const filter = input.value.toLowerCase();
+            const clearBtn = document.getElementById('clear-search-btn');
+            const noResultsMsg = document.getElementById('no-results-msg');
+            let hasGlobalResults = false;
+
+            // 1. Toggle Clear Button
+            if (filter.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+
+            // 2. Filter Categories & Items
+            const categories = document.querySelectorAll('.category-section');
+
+            categories.forEach(category => {
+                let hasVisibleChildren = false;
+                const items = category.querySelectorAll('.function-card');
+
+                items.forEach(item => {
+                    const name = item.getAttribute('data-name');
+                    
+                    // Partial Match Logic (Includes)
+                    if (name.includes(filter)) {
+                        item.parentElement.classList.remove('hidden'); // Show grid wrapper of item? No, item is the direct child of grid usually, but here item is the DIV.
+                        // Grid structure: Grid -> Div (Card). We hide the Div.
+                        item.classList.remove('hidden');
+                        item.classList.add('flex'); // Restore flex layout
+                        hasVisibleChildren = true;
+                        hasGlobalResults = true;
+                    } else {
+                        item.classList.add('hidden');
+                        item.classList.remove('flex');
+                    }
+                });
+
+                // 3. Hide Category Header if no items match
+                if (hasVisibleChildren) {
+                    category.classList.remove('hidden');
+                } else {
+                    category.classList.add('hidden');
+                }
+            });
+
+            // 4. Empty State
+            if (!hasGlobalResults) {
+                noResultsMsg.classList.remove('hidden');
+            } else {
+                noResultsMsg.classList.add('hidden');
+            }
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('library-search');
+            input.value = '';
+            filterLibrary();
+            input.focus();
+        }
     </script>
 </x-app-layout>
