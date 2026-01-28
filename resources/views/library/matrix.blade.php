@@ -59,7 +59,7 @@
                                     {{-- Function Name --}}
                                     <td class="px-4 py-2 font-medium text-gray-900 sticky left-0 bg-white z-10 border-r flex items-center gap-2 h-12">
                                         @if($func->image)
-                                            <img src="{{ $func->image }}" class="w-6 h-6 rounded object-cover">
+                                            <img src="{{ asset('storage/' . $func->image) }}" class="w-6 h-6 rounded object-cover">
                                         @endif
                                         {{ $func->name }}
                                     </td>
