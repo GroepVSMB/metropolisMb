@@ -37,21 +37,26 @@
                     <hr class="my-6">
 
                     {{-- NEW: Metrics Inputs --}}
-                    <h3 class="font-bold text-lg mb-3">Impact op Kwaliteit</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <h3 class="font-bold text-lg mb-3">Impact op Kwaliteit & Tijd</h3>
+                    <div class="grid grid-cols-1 gap-4">
                         @foreach($metrics as $metric)
-                            <div class="flex items-center justify-between bg-gray-50 p-3 rounded border">
-                                {{-- ADDED: truncate, block, and title for hover tooltip --}}
-                                <span class="font-medium text-gray-700 truncate mr-2" title="{{ $metric->name }}">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 p-3 rounded border">
+                                <span class="font-medium text-gray-700 w-1/3" title="{{ $metric->name }}">
                                     {{ $metric->name }}
                                 </span>
 
-                                {{-- ADDED: flex-shrink-0 to prevent input from getting squashed --}}
-                                <div class="flex items-center flex-shrink-0">
+                                <div class="flex items-center gap-2 mt-2 sm:mt-0">
                                     <input type="number"
-                                           name="impacts[{{ $metric->id }}]"
+                                           name="impacts[{{ $metric->id }}][value]"
                                            placeholder="0"
-                                           class="w-20 border-gray-300 rounded shadow-sm text-right focus:border-metro-darkred focus:ring-metro-darkred">
+                                           class="w-24 border-gray-300 rounded shadow-sm text-right focus:border-metro-darkred focus:ring-metro-darkred"
+                                    >
+                                    
+                                    <select name="impacts[{{ $metric->id }}][condition]" class="text-sm border-gray-300 rounded shadow-sm">
+                                        <option value="always">Altijd</option>
+                                        <option value="day_only">☀️ Alleen Dag</option>
+                                        <option value="night_only">🌙 Alleen Nacht</option>
+                                    </select>
                                 </div>
                             </div>
                         @endforeach
