@@ -67,7 +67,6 @@ class CityFunctionSeeder extends Seeder
                     ['id' => $noise->id, 'val' => 20, 'cond' => 'always'],
                     ['id' => $housing->id, 'val' => 15, 'cond' => 'always'],
                     ['id' => $safety->id, 'val' => 10, 'cond' => 'day_only'],
-                    ['id' => $safety->id, 'val' => -5, 'cond' => 'night_only'], // Unsafe at night
                 ]
             ],
             [
@@ -106,7 +105,7 @@ class CityFunctionSeeder extends Seeder
             [
                 'name' => 'Zonnepaneel',
                 'category_id' => $groen, 
-                'image' => 'https://solarmagazine.nl/storage/images/2023/12/zonnepanelen-dak-huis-2.jpg',
+                'image' => 'uploads/zonnepanelen.jpg',
                 'impacts' => [
                     ['id' => $energy->id, 'val' => 30, 'cond' => 'day_only'], 
                     ['id' => $housing->id, 'val' => 5, 'cond' => 'always'],
@@ -115,7 +114,7 @@ class CityFunctionSeeder extends Seeder
             [
                 'name' => 'Bar / Cafe',
                 'category_id' => $dienst,
-                'image' => 'https://entree-assets.s3.eu-central-1.amazonaws.com/s3fs-public/styles/header_image/public/2023-08/Bar%20The%20Tailor%20Amsterdam%20Krasnapolsky.jpg?h=a1532f6a&itok=D3g8tLpS',
+                'image' => 'uploads/pub.jpg',
                 'impacts' => [
                     ['id' => $noise->id, 'val' => -5, 'cond' => 'day_only'],
                     ['id' => $noise->id, 'val' => -30, 'cond' => 'night_only'], 
