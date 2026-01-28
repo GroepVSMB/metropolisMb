@@ -42,9 +42,10 @@ class CityFunctionSeeder extends Seeder
                 'category_id' => $wonen,
                 'image' => 'uploads/sociale_huur.jpg',
                 'impacts' => [
-                    $housing->id => 20,
-                    $safety->id => 5,
-                    $traffic->id => -5,
+                    ['id' => $housing->id, 'val' => 20, 'cond' => 'always'],
+                    ['id' => $safety->id, 'val' => 5, 'cond' => 'always'],
+                    ['id' => $traffic->id, 'val' => -5, 'cond' => 'always'],
+                    ['id' => $energy->id, 'val' => -10, 'cond' => 'night_only'], // High energy use at night
                 ]
             ],
             [
@@ -52,9 +53,9 @@ class CityFunctionSeeder extends Seeder
                 'category_id' => $wonen,
                 'image' => 'uploads/luxe_flat.jpg',
                 'impacts' => [
-                    $housing->id => 40,
-                    $energy->id => 10,
-                    $traffic->id => -10,
+                    ['id' => $housing->id, 'val' => 40, 'cond' => 'always'],
+                    ['id' => $energy->id, 'val' => 10, 'cond' => 'always'], // Energy efficient
+                    ['id' => $traffic->id, 'val' => -10, 'cond' => 'always'],
                 ]
             ],
             [
@@ -62,10 +63,11 @@ class CityFunctionSeeder extends Seeder
                 'category_id' => $groen,
                 'image' => 'uploads/stadspark.jpg',
                 'impacts' => [
-                    $air->id => 30,
-                    $noise->id => 20,
-                    $housing->id => 15,
-                    $safety->id => 10,
+                    ['id' => $air->id, 'val' => 30, 'cond' => 'always'],
+                    ['id' => $noise->id, 'val' => 20, 'cond' => 'always'],
+                    ['id' => $housing->id, 'val' => 15, 'cond' => 'always'],
+                    ['id' => $safety->id, 'val' => 10, 'cond' => 'day_only'],
+                    ['id' => $safety->id, 'val' => -5, 'cond' => 'night_only'], // Unsafe at night
                 ]
             ],
             [
@@ -73,10 +75,10 @@ class CityFunctionSeeder extends Seeder
                 'category_id' => $werken,
                 'image' => 'uploads/staal_fabriek.jpg',
                 'impacts' => [
-                    $air->id => -50,
-                    $noise->id => -40,
-                    $traffic->id => -20,
-                    $housing->id => -30,
+                    ['id' => $air->id, 'val' => -50, 'cond' => 'always'],
+                    ['id' => $noise->id, 'val' => -40, 'cond' => 'always'],
+                    ['id' => $traffic->id, 'val' => -20, 'cond' => 'always'],
+                    ['id' => $housing->id, 'val' => -30, 'cond' => 'always'],
                 ]
             ],
             [
@@ -84,9 +86,10 @@ class CityFunctionSeeder extends Seeder
                 'category_id' => $dienst,
                 'image' => 'uploads/winkel.jpg',
                 'impacts' => [
-                    $housing->id => 10,
-                    $traffic->id => -15,
-                    $safety->id => 5,
+                    ['id' => $housing->id, 'val' => 10, 'cond' => 'always'],
+                    ['id' => $traffic->id, 'val' => -15, 'cond' => 'day_only'], 
+                    ['id' => $safety->id, 'val' => 5, 'cond' => 'day_only'],
+                    ['id' => $energy->id, 'val' => -10, 'cond' => 'day_only'], // Lights/AC during day
                 ]
             ],
             [
@@ -94,9 +97,30 @@ class CityFunctionSeeder extends Seeder
                 'category_id' => $veiligheid,
                 'image' => 'uploads/politiebureau.jpg',
                 'impacts' => [
-                    $safety->id => 50,
-                    $noise->id => -5,
-                    $housing->id => 5,
+                    ['id' => $safety->id, 'val' => 50, 'cond' => 'always'],
+                    ['id' => $noise->id, 'val' => -5, 'cond' => 'always'],
+                    ['id' => $housing->id, 'val' => 5, 'cond' => 'always'],
+                ]
+            ],
+            // NEW ITEMS
+            [
+                'name' => 'Zonnepaneel',
+                'category_id' => $groen, 
+                'image' => 'https://solarmagazine.nl/storage/images/2023/12/zonnepanelen-dak-huis-2.jpg',
+                'impacts' => [
+                    ['id' => $energy->id, 'val' => 30, 'cond' => 'day_only'], 
+                    ['id' => $housing->id, 'val' => 5, 'cond' => 'always'],
+                ]
+            ],
+            [
+                'name' => 'Bar / Cafe',
+                'category_id' => $dienst,
+                'image' => 'https://entree-assets.s3.eu-central-1.amazonaws.com/s3fs-public/styles/header_image/public/2023-08/Bar%20The%20Tailor%20Amsterdam%20Krasnapolsky.jpg?h=a1532f6a&itok=D3g8tLpS',
+                'impacts' => [
+                    ['id' => $noise->id, 'val' => -5, 'cond' => 'day_only'],
+                    ['id' => $noise->id, 'val' => -30, 'cond' => 'night_only'], 
+                    ['id' => $safety->id, 'val' => -5, 'cond' => 'night_only'], 
+                    ['id' => $housing->id, 'val' => -5, 'cond' => 'always'],
                 ]
             ]
         ];
@@ -111,13 +135,16 @@ class CityFunctionSeeder extends Seeder
             ]);
 
             // Create the Impacts
-            foreach ($data['impacts'] as $metricId => $score) {
-                if ($metricId) {
-                    FunctionImpact::create([
+            foreach ($data['impacts'] as $impactData) {
+                if ($impactData['id']) {
+                    $impact = new FunctionImpact();
+                    $impact->forceFill([
                         'city_function_id' => $function->id,
-                        'quality_metric_id' => $metricId,
-                        'impact' => $score
+                        'quality_metric_id' => $impactData['id'],
+                        'impact' => $impactData['val'],
+                        'condition' => $impactData['cond'] ?? 'always'
                     ]);
+                    $impact->save();
                 }
             }
         }

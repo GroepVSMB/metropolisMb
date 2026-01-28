@@ -39,16 +39,29 @@
                     <hr class="my-6">
 
                     {{-- NEW: Metrics Inputs --}}
-                    <h3 class="font-bold text-lg mb-3">Impact op Kwaliteit</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <h3 class="font-bold text-lg mb-3">Impact op Kwaliteit & Tijd</h3>
+                    <div class="grid grid-cols-1 gap-4">
                         @foreach($metrics as $metric)
-                            <div class="flex items-center justify-between bg-gray-50 p-3 rounded border">
-                                <span class="font-medium text-gray-700">{{ $metric->name }}</span>
-                                <input type="number"
-                                       name="impacts[{{ $metric->id }}]"
-                                       value="{{ $currentImpacts[$metric->id] ?? '' }}"
-                                       placeholder="0"
-                                       class="w-20 border-gray-300 rounded shadow-sm text-right">
+                            @php
+                                $val = $currentImpacts[$metric->id]['value'] ?? '';
+                                $cond = $currentImpacts[$metric->id]['condition'] ?? 'always';
+                            @endphp
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 p-3 rounded border">
+                                <span class="font-medium text-gray-700 w-1/3">{{ $metric->name }}</span>
+                                
+                                <div class="flex items-center gap-2 mt-2 sm:mt-0">
+                                    <input type="number"
+                                           name="impacts[{{ $metric->id }}][value]"
+                                           value="{{ $val }}"
+                                           placeholder="0"
+                                           class="w-24 border-gray-300 rounded shadow-sm text-right">
+
+                                    <select name="impacts[{{ $metric->id }}][condition]" class="text-sm border-gray-300 rounded shadow-sm">
+                                        <option value="always" {{ $cond == 'always' ? 'selected' : '' }}>Altijd</option>
+                                        <option value="day_only" {{ $cond == 'day_only' ? 'selected' : '' }}>☀️ Alleen Dag</option>
+                                        <option value="night_only" {{ $cond == 'night_only' ? 'selected' : '' }}>🌙 Alleen Nacht</option>
+                                    </select>
+                                </div>
                             </div>
                         @endforeach
                     </div>
