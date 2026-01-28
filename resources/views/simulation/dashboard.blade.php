@@ -182,6 +182,33 @@
     background-color: #10b981; /* Green-500 */
     opacity: 0.6;
 }
+
+        /* =======================
+        APPROVED / LOCKED CELL
+        ======================= */
+        .cell-approved {
+            border: 3px solid #16a34a !important;
+            box-shadow: inset 0 0 0 2px rgba(22,163,74,0.3);
+            cursor: not-allowed;
+        }
+
+        .cell-approved::before {
+            content: '🔒';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 16px;
+            z-index: 60;
+            background: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        /* SELECTED CELL (for approval) */
+        .cell-selected {
+            box-shadow: inset 0 0 0 3px #2563eb;
+        }
+
     </style>
 
     <x-slot name="header">
@@ -361,6 +388,29 @@
 
                 {{-- KOLOM 3: Score & Metrics --}}
                 <aside class="w-full lg:w-1/4 min-w-[250px] flex flex-col gap-5">
+                    @if(Auth::check() &&Auth::user()->hasRole('policy_maker'))
+                        <h3 class="font-bold text-lg mb-4 text-gray-800">Kavel goedkeuren</h3>
+                        <div class="flex gap-2 mb-4">
+                            <button
+                                id="approve-btn"
+                                onclick="approveSelectedCell()"
+                                disabled
+                                class="px-4 py-2 bg-green-600 text-white rounded font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Goedkeuren
+                            </button>
+                            <button
+                                id="unlock-btn"
+                                onclick="unlockSelectedCell()"
+                                disabled
+                                class="px-4 py-2 bg-orange-600 text-white rounded font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Ontgrendelen
+                            </button>
+
+                        </div>
+                    @endif
+
                                     {{-- COMMENT TOOLS --}}
 
                 @if(Auth::check() &&Auth::user()->hasRole('policy_maker'))
@@ -599,6 +649,10 @@
         let currentDragIndex = null;
         let activeEvents = [];
 
+        // --- APPROVAL STATE (FRONT-END ONLY) ---
+        let approvedCells = new Set(); // Bevat cellIndex die zijn goedgekeurd
+        let selectedCellForApproval = null;
+
         // GLOBAL SCORE TRACKING
         let currentAverageScore = 100;
         let deltaTimeout = null;
@@ -811,12 +865,24 @@
         }
 
       function applyFunctionToCell(cellIndex, funcIndex) {
+            if (approvedCells.has(cellIndex)) {
+                showNotification("Deze kavel is vergrendeld en kan niet gewijzigd worden.", "error");
+                return;
+            }
             // 1. Update de status in het geheugen
             gridState[cellIndex] = funcIndex;
             
             // 2. Teken de nieuwe inhoud van de cel (Functie plaatje of leeg)
             // Dit wist tijdelijk ook het comment-icoon!
             updateCellUI(cellIndex, availableFunctions[funcIndex]);
+
+            if (approvedCells.has(cellIndex)) {
+                updateApprovedUI(cellIndex);
+            }
+
+            if (selectedCellForApproval === cellIndex) {
+                updateSelectedCellUI();
+            }
             
             // 3. Herbereken scores
             calculateMetrics();
@@ -1188,13 +1254,13 @@ function toggleCommentMode() {
 
 function handleCellClick(index) {
     if (commentMode) {
-        // Open Modal
         activeCommentCell = index;
         document.getElementById('comment-modal').classList.remove('hidden');
         document.getElementById('new-comment-text').focus();
-        return true; // Stop andere acties
+        return;
     }
-    return false; // Ga door met normale acties (slepen/verwijderen)
+
+    selectCellForApproval(index);
 }
 
 function closeCommentModal() {
@@ -1336,6 +1402,90 @@ function renderComments() {
             }
         });
     }
+        function approveSelectedCell() {
+            if (selectedCellForApproval === null) {
+                showNotification("Selecteer eerst een kavel.", "error");
+                return;
+            }
+
+            approvedCells.add(selectedCellForApproval);
+            updateApprovedUI(selectedCellForApproval);
+
+            // selectie verwijderen
+            const cell = document.getElementById(`cell-${selectedCellForApproval}`);
+            cell?.classList.remove('cell-selected');
+
+            selectedCellForApproval = null;
+            updateApprovalButtonState();
+
+            showNotification("Kavel goedgekeurd.", "success");
+        }
+
+
+        function updateApprovedUI(cellIndex) {
+            const cell = document.getElementById(`cell-${cellIndex}`);
+            if (!cell) return;
+
+            cell.classList.add('cell-approved');
+        }
+
+        function selectCellForApproval(index) {
+            selectedCellForApproval = index;
+
+            requestAnimationFrame(() => {
+                updateSelectedCellUI();
+                updateApprovalButtonState();
+            });
+        }
+
+        function updateApprovalButtonState() {
+            const approveBtn = document.getElementById('approve-btn');
+            const unlockBtn = document.getElementById('unlock-btn');
+
+            if (!approveBtn || !unlockBtn) return;
+
+            if (selectedCellForApproval === null) {
+                approveBtn.disabled = true;
+                unlockBtn.disabled = true;
+                return;
+            }
+
+            const isApproved = approvedCells.has(selectedCellForApproval);
+
+            approveBtn.disabled = isApproved;
+            unlockBtn.disabled = !isApproved;
+        }
+
+        function updateSelectedCellUI() {
+            document.querySelectorAll('.cell-selected')
+                .forEach(cell => cell.classList.remove('cell-selected'));
+
+            if (selectedCellForApproval === null) return;
+
+            const cell = document.getElementById(`cell-${selectedCellForApproval}`);
+            cell?.classList.add('cell-selected');
+        }
+
+
+        function unlockSelectedCell() {
+            if (selectedCellForApproval === null) {
+                showNotification("Selecteer eerst een kavel.", "error");
+                return;
+            }
+
+            if (!approvedCells.has(selectedCellForApproval)) {
+                showNotification("Deze kavel is niet vergrendeld.", "info");
+                return;
+            }
+
+            approvedCells.delete(selectedCellForApproval);
+
+            const cell = document.getElementById(`cell-${selectedCellForApproval}`);
+            cell?.classList.remove('cell-approved');
+
+            showNotification("Kavel ontgrendeld.", "success");
+        }
+
     </script>
 
     {{-- DRAG GHOST --}}
