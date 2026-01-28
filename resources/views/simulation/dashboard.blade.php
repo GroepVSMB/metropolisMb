@@ -290,19 +290,101 @@
 
                 {{-- KOLOM 2: The Grid --}}
                {{-- KOLOM 2: The Grid --}}
-                <section class="w-full lg:w-2/4 flex flex-col bg-white shadow-sm sm:rounded-lg p-6 relative" x-data="{ showHelp: false }">
+                <section class="w-full lg:w-2/4 flex flex-col bg-white shadow-sm sm:rounded-lg p-6 relative" x-data="{ showHelp: false, showApproval: false, showComments: false }">
                     
-                    {{-- HEADER & HELP KNOP --}}
+                    {{-- HEADER & KNOPPEN --}}
                     <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
                         <h3 class="font-bold text-gray-700 text-lg">Stadsindeling</h3>
-                        <button @click="showHelp = !showHelp" 
-                                class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center bg-blue-50 px-3 py-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Instructies & Controls
-                        </button>
+                        <div class="flex gap-2">
+                             @if(Auth::check() && Auth::user()->hasRole('policy_maker'))
+                                <button @click="showApproval = !showApproval" 
+                                        :class="{'bg-green-100 text-green-800 ring-2 ring-green-300': showApproval, 'bg-green-50 text-green-600': !showApproval}"
+                                        class="text-xs font-bold hover:text-green-800 flex items-center px-3 py-1 rounded-full transition-all focus:outline-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Kavel Beheer
+                                </button>
+                                
+                                <button @click="showComments = !showComments" 
+                                        :class="{'bg-yellow-100 text-yellow-800 ring-2 ring-yellow-300': showComments, 'bg-yellow-50 text-yellow-600': !showComments}"
+                                        class="text-xs font-bold hover:text-yellow-800 flex items-center px-3 py-1 rounded-full transition-all focus:outline-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                    </svg>
+                                    Notities
+                                </button>
+                            @endif
+
+                            <button @click="showHelp = !showHelp" 
+                                    :class="{'bg-blue-100 text-blue-800 ring-2 ring-blue-300': showHelp, 'bg-blue-50 text-blue-600': !showHelp}"
+                                    class="text-xs font-bold hover:text-blue-800 flex items-center px-3 py-1 rounded-full transition-all focus:outline-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Instructies & Controls
+                            </button>
+                        </div>
                     </div>
+
+                    {{-- APPROVAL PANEEL (Inklapbaar) --}}
+                    @if(Auth::check() && Auth::user()->hasRole('policy_maker'))
+                    <div x-show="showApproval" 
+                         style="display: none;"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 -translate-y-2"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="bg-green-50 border border-green-100 rounded-lg p-3 mb-4 text-sm text-gray-700 shadow-inner flex flex-wrap justify-between items-center gap-2">
+                        
+                         <span class="text-green-800 font-bold text-xs uppercase tracking-wider flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            Geselecteerde Kavel:
+                         </span>
+
+                        <div class="flex gap-2">
+                            <button
+                                id="approve-btn"
+                                onclick="approveSelectedCell()"
+                                disabled
+                                class="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-sm"
+                            >
+                                Goedkeuren
+                            </button>
+                            <button
+                                id="unlock-btn"
+                                onclick="unlockSelectedCell()"
+                                disabled
+                                class="px-3 py-1 bg-orange-600 text-white rounded text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-700 transition shadow-sm"
+                            >
+                                Ontgrendelen
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- COMMENTS PANEEL (Inklapbaar) --}}
+                    <div x-show="showComments" 
+                         style="display: none;"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 -translate-y-2"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="bg-yellow-50 border border-yellow-100 rounded-lg p-3 mb-4 text-sm text-gray-700 shadow-inner flex flex-wrap justify-between items-center gap-2">
+                        
+                         <span class="text-yellow-800 font-bold text-xs uppercase tracking-wider flex items-center">
+                            Modus status:
+                         </span>
+
+                        <div class="flex items-center gap-3">
+                             <button id="toggle-comment-mode" 
+                                    onclick="toggleCommentMode()" 
+                                    class="flex items-center px-3 py-1 bg-yellow-500 text-white rounded text-xs font-bold shadow hover:bg-yellow-600 transition">
+                                <span id="comment-mode-text">Notitie Modus: UIT</span>
+                            </button>
+                             <p class="text-[10px] text-yellow-800 italic">
+                                (Activeer en klik op een kavel)
+                            </p>
+                        </div>
+                    </div>
+                    @endif
 
                     {{-- INSTRUCTIE PANEEL (Inklapbaar) --}}
                     <div x-show="showHelp" 
@@ -388,45 +470,9 @@
 
                 {{-- KOLOM 3: Score & Metrics --}}
                 <aside class="w-full lg:w-1/4 min-w-[250px] flex flex-col gap-5">
-                    @if(Auth::check() &&Auth::user()->hasRole('policy_maker'))
-                        <h3 class="font-bold text-lg mb-4 text-gray-800">Kavel goedkeuren</h3>
-                        <div class="flex gap-2 mb-4">
-                            <button
-                                id="approve-btn"
-                                onclick="approveSelectedCell()"
-                                disabled
-                                class="px-4 py-2 bg-green-600 text-white rounded font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                                Goedkeuren
-                            </button>
-                            <button
-                                id="unlock-btn"
-                                onclick="unlockSelectedCell()"
-                                disabled
-                                class="px-4 py-2 bg-orange-600 text-white rounded font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                                Ontgrendelen
-                            </button>
 
-                        </div>
-                    @endif
 
-                                    {{-- COMMENT TOOLS --}}
 
-                @if(Auth::check() &&Auth::user()->hasRole('policy_maker'))
-                      <div class="mb-4 flex items-center space-x-4 bg-yellow-50 p-3 rounded border border-yellow-200" x-data>
-                    <button id="toggle-comment-mode" 
-                            onclick="toggleCommentMode()" 
-                            class="flex items-center px-4 py-2 bg-yellow-500 text-white rounded shadow hover:bg-yellow-600 transition font-bold">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
-                        <span id="comment-mode-text">Notitie Modus: UIT</span>
-                    </button>
-                    <p class="text-xs text-yellow-800">
-                        Klik op deze knop om notities te plaatsen. Klik daarna op een kavel.
-                    </p>
-                </div>
-
-                @endif
                
 {{-- ADD COMMENT MODAL (Geoptimaliseerd) --}}
 <div id="comment-modal" class="fixed inset-0 z-[100] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center transition-all duration-300">
