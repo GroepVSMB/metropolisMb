@@ -61,7 +61,7 @@
                                 {{-- Image Section --}}
                                 <div class="relative h-48 bg-gray-100 overflow-hidden">
                                     @if($function->image)
-                                        <img src="{{ $function->image }}"
+                                        <img src="{{ asset('storage/' . $function->image) }}"
                                              alt="{{ $function->name }}"
                                              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">

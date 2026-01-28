@@ -246,7 +246,7 @@
                                                 @endif
 
                                                 @if($function['image'])
-                                                    <img src="{{ $function['image'] }}" class="w-10 h-10 rounded mr-3 object-cover border border-gray-200">
+                                                    <img src="{{ asset('storage/' . $function['image']) }}" class="w-10 h-10 rounded mr-3 object-cover border border-gray-200">
                                                 @else
                                                     <span class="w-10 h-10 rounded mr-3 bg-gray-200 block"></span>
                                                 @endif
@@ -322,7 +322,9 @@
                     <div id="live-feedback" class="fixed top-28 left-1/2 transform -translate-x-1/2 z-[100] w-auto min-w-[300px] text-center hidden pointer-events-none transition-all duration-200"></div>
                     
                     {{-- THE GRID CONTAINER --}}
-                    <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 flex flex-col items-center justify-center">
+                    <div 
+                        id="city-grid"
+                        class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 flex flex-col items-center justify-center">
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
                                 <div id="cell-{{ $i }}" onclick="handleCellClick({{ $i }})"
@@ -357,6 +359,13 @@
                             @endfor
                         </div>
                     </div>
+                    <br>
+                    <button
+                        id="exportPdfBtn"
+                        class="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition"
+                    >
+                        Export as PDF
+                    </button>
                 </section>
 
                 {{-- KOLOM 3: Score & Metrics --}}
@@ -508,10 +517,94 @@
         </div>
     </div>
 
+    <!-- html2canvas, ill use for the screenshot -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
     {{-- JAVASCRIPT LOGIC --}}
     <script>
-        const currentUserId = {{ auth()->id() }};
+
+    const currentUserId = {{ auth()->id() }};
     const currentUserRole = "{{ auth()->user()->role->value ?? 'guest' }}"; // Voor de zekerheid
+
+    // Grid state
+    window.currentGridState = window.currentGridState || [];
+    // QoL scores
+    window.currentScores = window.currentScores || {};
+    // Active events
+    window.activeEvents = window.activeEvents || [];
+
+    /* Called whenever a grid cell is updated */
+    function onCellUpdate(gridState) {
+        window.currentGridState = [...gridState];
+    }
+
+
+    /* Called after Quality of Life scores are recalculated */
+    function onScoreUpdate(scores) {
+        window.currentScores = { ...scores };
+    }
+
+
+    /* Called when a simulation event becomes active */
+    function onEventStart(event) {
+        if (!window.activeEvents.some(e => e.id === event.id)) {
+            window.activeEvents.push({
+                id: event.id,
+                name: event.name
+            });
+        }
+    }
+
+    /* Called when a simulation event ends */
+    function onEventEnd(eventId) {
+        window.activeEvents = window.activeEvents.filter(e => e.id !== eventId);
+    }
+    
+    document.getElementById('exportPdfBtn')?.addEventListener('click', async () => {
+        const gridElement = document.getElementById('city-grid');
+        if (!gridElement) return alert('City grid not found');
+
+        try {
+            // Capture grid as a canvas
+            const canvas = await html2canvas(gridElement, {
+                backgroundColor: '#ffffff',
+                scale: 2
+            });
+
+            const payload = {
+                grid_state: window.currentGridState, // plain data
+                scores: window.currentScores,        // plain data
+                events: window.activeEvents || [],   // plain data
+                map_image: canvas.toDataURL('image/png') // map screenshot
+            };
+
+            // Send to backend for PDF generation
+            response = await fetch('/simulation/export-pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'simulation-report.pdf';
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error('PDF export failed:', error);
+            alert('Failed to export PDF');
+        }
+    });
+
+
+
+
 
        // --- KEYBOARD ACCESSIBILITY LOGIC (UPDATED) ---
         let keyboardSourceId = null;
@@ -663,6 +756,9 @@
 
             let newAverage = totalScore / metrics.length;
             updateGlobalScore(newAverage);
+
+            // save data into the js
+            onScoreUpdate(currentScores);
         }
 
         // --- 2. GLOBAL SCORE & VISUAL FEEDBACK LOGIC ---
@@ -706,6 +802,12 @@
 
             const func = availableFunctions.find(f => f.id === dbId);
             const indexInArray = availableFunctions.indexOf(func);
+
+            const imgEl = ev.currentTarget.querySelector('img');
+            if (imgEl) {
+                func.image = imgEl.src;  // overwrite JS object with correct URL
+            }
+
             currentDragIndex = indexInArray;
             ev.dataTransfer.setData("funcIndex", indexInArray);
             ev.dataTransfer.effectAllowed = "copy";
@@ -813,6 +915,9 @@
       function applyFunctionToCell(cellIndex, funcIndex) {
             // 1. Update de status in het geheugen
             gridState[cellIndex] = funcIndex;
+
+            // save data into the js
+            onCellUpdate(gridState);
             
             // 2. Teken de nieuwe inhoud van de cel (Functie plaatje of leeg)
             // Dit wist tijdelijk ook het comment-icoon!
@@ -890,6 +995,9 @@
 
             calculateMetrics();
             setTimeout(() => { endEvent(eventId); }, 5000);
+
+            // save data into the js
+            onEventStart(eventDef);
         }
 
         function endEvent(eventId) {
@@ -898,6 +1006,9 @@
             const btn = document.getElementById(`btn-event-${eventId}`);
             if(btn) btn.classList.remove('bg-red-50', 'border-metro-darkred', 'text-metro-darkred', 'ring-1', 'ring-metro-darkred');
             calculateMetrics();
+
+            // save data into the js
+            onEventEnd(eventId);
         }
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();

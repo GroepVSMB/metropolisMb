@@ -40,62 +40,62 @@ class CityFunctionSeeder extends Seeder
             [
                 'name' => 'Sociale Huur',
                 'category_id' => $wonen,
-                'image' => 'https://finance-ideas.nl/wp-content/uploads/2022/07/wanneer-is-een-woning-een-sociale-huurwoning.jpg',
+                'image' => 'uploads/sociale_huur.jpg',
                 'impacts' => [
-                    $housing->id => 20,  // Good for housing availability
-                    $safety->id => 5,    // Social cohesion
-                    $traffic->id => -5,  // Slight traffic increase
+                    $housing->id => 20,
+                    $safety->id => 5,
+                    $traffic->id => -5,
                 ]
             ],
             [
                 'name' => 'Luxe Flat',
                 'category_id' => $wonen,
-                'image' => 'https://www.bouwenmetnatuursteen.nl/wp-content/uploads/2024/03/NG-Bouwen-met-Natuursteen-Luxe-parkappartementen-1-Noordwijk-Constanta1.jpg',
+                'image' => 'uploads/luxe_flat.jpg',
                 'impacts' => [
-                    $housing->id => 40,  // High value
-                    $energy->id => 10,   // Modern insulation
-                    $traffic->id => -10, // More cars
+                    $housing->id => 40,
+                    $energy->id => 10,
+                    $traffic->id => -10,
                 ]
             ],
             [
                 'name' => 'Stadspark',
                 'category_id' => $groen,
-                'image' => 'https://assets.plaece.nl/thumb/Bid1aB6mtgfI8CjAizLbj5hKJ9JC59RqChfhHnMlYBg/resizing_type:fit/width:960/height:0/gravity:sm/enlarge:0/aHR0cHM6Ly9hc3NldHMucGxhZWNlLm5sL2t1bWEtZ3JvbmluZ2VuL3VwbG9hZHMvbWVkaWEvNjBlNWI3NjQwNzA1Yi8yNy1sYXJnZS5qcGc.jpg',
+                'image' => 'uploads/stadspark.jpg',
                 'impacts' => [
-                    $air->id => 30,      // Trees clean air
-                    $noise->id => 20,    // Absorbs noise (Positive score = Less noise)
-                    $housing->id => 15,  // Attractive to live near
-                    $safety->id => 10,   // Recreation
+                    $air->id => 30,
+                    $noise->id => 20,
+                    $housing->id => 15,
+                    $safety->id => 10,
                 ]
             ],
             [
                 'name' => 'Staal Fabriek',
                 'category_id' => $werken,
-                'image' => 'https://rogierbos.com/wp-content/uploads/2024/10/Industrieel-fotograaf-voor-staal-en-metaal-bij-Hoogovens-TataSteel-5.jpg',
+                'image' => 'uploads/staal_fabriek.jpg',
                 'impacts' => [
-                    $air->id => -50,     // Heavy pollution
-                    $noise->id => -40,   // Very loud
-                    $traffic->id => -20, // Heavy trucks
-                    $housing->id => -30, // Nobody wants to live here
+                    $air->id => -50,
+                    $noise->id => -40,
+                    $traffic->id => -20,
+                    $housing->id => -30,
                 ]
             ],
             [
                 'name' => 'Winkel',
                 'category_id' => $dienst,
-                'image' => 'https://www.mallatmillenia.com/wp-content/uploads/2025/07/071125_GUCCI_MILLENIA_24_151_v1_QC_R150_1999x1495_acf_cropped.jpg',
+                'image' => 'uploads/winkel.jpg',
                 'impacts' => [
-                    $housing->id => 10,  // Convenience
-                    $traffic->id => -15, // Shoppers cause traffic
-                    $safety->id => 5,    // Eyes on the street
+                    $housing->id => 10,
+                    $traffic->id => -15,
+                    $safety->id => 5,
                 ]
             ],
             [
                 'name' => 'Politiebureau',
                 'category_id' => $veiligheid,
-                'image' => 'https://www.galjema.nl/wp-content/uploads/2024/03/Mitchell-van-Eijk_Politiebureau_Oost-Zeeburg-4-15klein.jpg',
+                'image' => 'uploads/politiebureau.jpg',
                 'impacts' => [
-                    $safety->id => 50,   // Huge safety boost
-                    $noise->id => -5,    // Sirens
+                    $safety->id => 50,
+                    $noise->id => -5,
                     $housing->id => 5,
                 ]
             ]
