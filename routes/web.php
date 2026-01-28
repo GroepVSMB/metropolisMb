@@ -8,6 +8,8 @@ use App\Http\Controllers\EventController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\SimulationExportController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -85,6 +87,10 @@ Route::middleware(['auth', 'role:planner,policy_maker'])->group(function () {
 Route::middleware(['auth', 'role:planner'])->group(function () {
     // Events beheren mag alleen de planner
     Route::resource('events', EventController::class);
+    
+    // PDF Export
+    Route::post('/simulation/export-pdf', [SimulationExportController::class, 'export'])
+        ->name('simulation.export');
 });
 
 // 6. Policy Maker Specific Routes (Alleen Policy Maker)

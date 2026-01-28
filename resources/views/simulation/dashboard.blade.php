@@ -140,52 +140,197 @@
             100% { transform: rotate(0deg); }
         }
 
+        /* --- TIMELINE STYLES --- */
+        .timeline-container {
+            position: relative;
+            height: 60px;
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .timeline-track {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .timeline-hour-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-left: 1px solid #d1d5db;
+            font-size: 10px;
+            color: #9ca3af;
+            padding-left: 2px;
+            pointer-events: none;
+        }
+
+        .timeline-night-zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background-color: rgba(30, 41, 59, 0.15); /* Slate-800 low opacity */
+            pointer-events: none;
+        }
+
+        .timeline-rush-hour {
+            position: absolute;
+            top: 15px;
+            bottom: 15px;
+            background-color: rgba(245, 158, 11, 0.3); /* Yellow-500 */
+            border-left: 2px solid #f59e0b;
+            border-right: 2px solid #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #b45309;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .timeline-event-block {
+            position: absolute;
+            top: 5px;
+            height: 25px;
+            background-color: #3b82f6; /* Blue-500 */
+            border-radius: 4px;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            z-index: 50; /* Higher than playhead (20) */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            border: 1px solid #2563eb;
+            min-width: 30px;
+            pointer-events: auto; /* Force clickable */
+        }
+
+        .timeline-event-block .delete-event-btn {
+            margin-left: auto;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+            color: white;
+            opacity: 0.7;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            cursor: pointer;
+            padding-bottom: 1px;
+            z-index: 60; /* Topmost */
+            pointer-events: auto;
+        }
+        
+        .timeline-event-block:hover .delete-event-btn {
+            opacity: 1;
+            background: rgba(220, 38, 38, 1);
+        }
+
+        /* Hide X button when simulation is running */
+        .simulation-playing .delete-event-btn {
+            display: none !important;
+        }
+
+        .timeline-event-block .delete-event-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 0, 0, 1);
+        }
+        
+        .timeline-playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #ef4444; /* Red-500 */
+            z-index: 20;
+            pointer-events: none; /* Let clicks pass through line */
+        }
+
+        /* The Draggable Handle */
+        .timeline-playhead::after {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            width: 14px;
+            height: 14px;
+            background-color: #ef4444;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: grab;
+            pointer-events: auto; /* Re-enable pointer events for handle */
+            z-index: 30;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .timeline-playhead::after:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+
         /* --- KEYBOARD ACCESSIBILITY STYLES --- */
-/* Duidelijke focus ring voor keyboard navigatie */
-.function-item:focus-visible, 
-.cell-content:focus-visible {
-    outline: 3px solid #3b82f6; /* Helder blauw */
-    outline-offset: 2px;
-    z-index: 50;
-}
+        /* Duidelijke focus ring voor keyboard navigatie */
+        .function-item:focus-visible, 
+        .cell-content:focus-visible {
+            outline: 3px solid #3b82f6; /* Helder blauw */
+            outline-offset: 2px;
+            z-index: 50;
+        }
 
-/* Wanneer een item in de lijst is 'geselecteerd' met Enter */
-.keyboard-selected {
-    background-color: #fee2e2 !important; /* Licht rood */
-    border-color: #b91c1c !important;     /* Donker rood */
-    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.3);
-}
+        /* Wanneer een item in de lijst is 'geselecteerd' met Enter */
+        .keyboard-selected {
+            background-color: #fee2e2 !important; /* Licht rood */
+            border-color: #b91c1c !important;     /* Donker rood */
+            box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.3);
+        }
 
-/* Wanneer een item geselecteerd is, verander de cursor op het grid */
-.keyboard-mode-active .cell-content {
-    cursor: copy; /* Visuele hint */
-}
-.comment-icon {
-    position: absolute;
-    top: 1px;
-    left: 1px;
-    width: 24px;
-    height: 24px;
-    background-color: #f59e0b; /* Yellow-500 */
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    z-index: 40;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    border: 2px solid white;
-}
-.comment-icon.resolved {
-    background-color: #10b981; /* Green-500 */
-    opacity: 0.6;
-}
+        /* Wanneer een item geselecteerd is, verander de cursor op het grid */
+        .keyboard-mode-active .cell-content {
+            cursor: copy; /* Visuele hint */
+        }
+
+        /* --- COMMENT ICONS --- */
+        .comment-icon {
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            width: 24px;
+            height: 24px;
+            background-color: #f59e0b; /* Yellow-500 */
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            z-index: 40;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 2px solid white;
+        }
+        .comment-icon.resolved {
+            background-color: #10b981; /* Green-500 */
+            opacity: 0.6;
+        }
 
         /* =======================
-        APPROVED / LOCKED CELL
-        ======================= */
+           APPROVED / LOCKED CELL
+           ======================= */
         .cell-approved {
             border: 3px solid #16a34a !important;
             box-shadow: inset 0 0 0 2px rgba(22,163,74,0.3);
@@ -247,17 +392,17 @@
                                     <ul class="space-y-2">
                                         @foreach($catFunctions as $function)
                                           <li draggable="true"
-    id="function-{{ $function['id'] }}"
-    {{-- ACCESSIBILITY ATTRIBUTES --}}
-    tabindex="0"
-    role="button"
-    aria-label="{{ $function['name'] }}. Druk op Enter om te selecteren."
-    onkeydown="handleSidebarKey(event, {{ $function['id'] }})"
-    {{-- END ACCESSIBILITY --}}
-    
-    ondragstart="drag(event, {{ $function['id'] }})"
-    onmousedown="acknowledgeFunction({{ $function['id'] }})"
-    class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative focus:outline-none">
+                                            id="function-{{ $function['id'] }}"
+                                            {{-- ACCESSIBILITY ATTRIBUTES --}}
+                                            tabindex="0"
+                                            role="button"
+                                            aria-label="{{ $function['name'] }}. Druk op Enter om te selecteren."
+                                            onkeydown="handleSidebarKey(event, {{ $function['id'] }})"
+                                            {{-- END ACCESSIBILITY --}}
+                                            
+                                            ondragstart="drag(event, {{ $function['id'] }})"
+                                            onmousedown="acknowledgeFunction({{ $function['id'] }})"
+                                            class="function-item group flex items-center p-2 bg-gray-50 rounded border border-gray-200 cursor-grab active:cursor-grabbing hover:border-metro-darkred hover:shadow-sm transition-all select-none relative focus:outline-none">
 
                                                 @php
                                                     $showBadge = false;
@@ -273,7 +418,7 @@
                                                 @endif
 
                                                 @if($function['image'])
-                                                    <img src="{{ $function['image'] }}" class="w-10 h-10 rounded mr-3 object-cover border border-gray-200">
+                                                    <img src="{{ asset('storage/' . $function['image']) }}" class="w-10 h-10 rounded mr-3 object-cover border border-gray-200">
                                                 @else
                                                     <span class="w-10 h-10 rounded mr-3 bg-gray-200 block"></span>
                                                 @endif
@@ -289,32 +434,62 @@
                 </aside>
 
                 {{-- KOLOM 2: The Grid --}}
-               {{-- KOLOM 2: The Grid --}}
                 <section class="w-full lg:w-2/4 flex flex-col bg-white shadow-sm sm:rounded-lg p-6 relative" x-data="{ showHelp: false, showApproval: false, showComments: false }">
                     
                     {{-- HEADER & KNOPPEN --}}
-                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
-                        <h3 class="font-bold text-gray-700 text-lg">Stadsindeling</h3>
-                        <div class="flex gap-2">
-                             @if(Auth::check() && Auth::user()->hasRole('policy_maker'))
-                                <button @click="showApproval = !showApproval" 
-                                        :class="{'bg-green-100 text-green-800 ring-2 ring-green-300': showApproval, 'bg-green-50 text-green-600': !showApproval}"
-                                        class="text-xs font-bold hover:text-green-800 flex items-center px-3 py-1 rounded-full transition-all focus:outline-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Kavel Beheer
-                                </button>
+                    <div class="flex flex-col gap-4 mb-4 border-b border-gray-100 pb-2">
+                        
+                        {{-- Row 1: Title & Simulation Controls --}}
+                        <div class="flex flex-wrap justify-between items-center gap-2">
+                            <h3 class="font-bold text-gray-700 text-lg">Stadsindeling</h3>
+                            
+                            {{-- CLOCK & SPEED CONTROLS --}}
+                            <div class="flex items-center gap-2 lg:gap-4 mt-1">
+                                <div class="text-sm font-mono bg-gray-100 px-2 py-1 rounded border border-gray-300 flex items-center gap-2">
+                                    <span id="game-clock-icon">☀️</span>
+                                    <span id="game-clock-display">Dag 1 - 08:00</span>
+                                </div>
+                                <div class="flex items-center bg-gray-100 rounded border border-gray-300 overflow-hidden">
+                                    <button onclick="setSpeed(0)" id="btn-speed-0" class="px-2 py-1 hover:bg-gray-200 text-xs font-bold border-r border-gray-300 transition-colors" title="Pauze">⏸</button>
+                                    <button onclick="setSpeed(1)" id="btn-speed-1" class="px-2 py-1 hover:bg-gray-200 text-xs font-bold border-r border-gray-300 bg-blue-100 text-blue-700 transition-colors" title="Normaal (1x)">1x</button>
+                                    <button onclick="setSpeed(2)" id="btn-speed-2" class="px-2 py-1 hover:bg-gray-200 text-xs font-bold border-r border-gray-300 transition-colors" title="Snel (2x)">2x</button>
+                                    <button onclick="setSpeed(5)" id="btn-speed-5" class="px-2 py-1 hover:bg-gray-200 text-xs font-bold border-r border-gray-300 transition-colors" title="Zeer Snel (5x)">5x</button>
+                                    <button onclick="setSpeed(10)" id="btn-speed-10" class="px-2 py-1 hover:bg-gray-200 text-xs font-bold transition-colors" title="Maximum Snelheid (10x)">10x</button>
+                                </div>
                                 
-                                <button @click="showComments = !showComments" 
-                                        :class="{'bg-yellow-100 text-yellow-800 ring-2 ring-yellow-300': showComments, 'bg-yellow-50 text-yellow-600': !showComments}"
-                                        class="text-xs font-bold hover:text-yellow-800 flex items-center px-3 py-1 rounded-full transition-all focus:outline-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                                    </svg>
-                                    Notities
-                                </button>
-                            @endif
+                                {{-- Day/Night Toggle --}}
+                                <div class="flex items-center bg-gray-100 rounded px-2 py-1 border border-gray-300 gap-2" title="Schakel Dag/Nacht Cyclus in/uit">
+                                    <span class="text-xs font-bold text-gray-500 hidden sm:inline">Cyclus</span>
+                                    <button onclick="toggleDayNight()" id="btn-daynight-toggle" class="w-8 h-4 bg-green-500 rounded-full relative transition-colors focus:outline-none">
+                                        <span id="daynight-knob" class="absolute top-0.5 left-4 w-3 h-3 bg-white rounded-full shadow-sm transition-all duration-200"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Row 2: Admin & Help Controls --}}
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                @if(Auth::check() && Auth::user()->hasRole('policy_maker'))
+                                    <button @click="showApproval = !showApproval" 
+                                            :class="{'bg-green-100 text-green-800 ring-2 ring-green-300': showApproval, 'bg-green-50 text-green-600': !showApproval}"
+                                            class="text-xs font-bold hover:text-green-800 flex items-center px-3 py-1 rounded-full transition-all focus:outline-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        Kavel Beheer
+                                    </button>
+                                    
+                                    <button @click="showComments = !showComments" 
+                                            :class="{'bg-yellow-100 text-yellow-800 ring-2 ring-yellow-300': showComments, 'bg-yellow-50 text-yellow-600': !showComments}"
+                                            class="text-xs font-bold hover:text-yellow-800 flex items-center px-3 py-1 rounded-full transition-all focus:outline-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                        </svg>
+                                        Notities
+                                    </button>
+                                @endif
+                            </div>
 
                             <button @click="showHelp = !showHelp" 
                                     :class="{'bg-blue-100 text-blue-800 ring-2 ring-blue-300': showHelp, 'bg-blue-50 text-blue-600': !showHelp}"
@@ -404,7 +579,7 @@
                                 <ul class="list-disc list-inside space-y-1 text-xs text-gray-600 ml-1">
                                     <li><strong>Slepen:</strong> Sleep functies van links naar het grid.</li>
                                     <li><strong>Verwijderen:</strong> Houd een kavel <span class="font-bold text-red-600">ingedrukt</span> (long-press).</li>
-                                    <li><strong>Details:</strong> Beweeg muis over een kavel voor info.</li>
+                                    <li><strong>Planning:</strong> Klik op de tijdlijn om een event in te plannen.</li>
                                 </ul>
                             </div>
 
@@ -426,12 +601,56 @@
                             Tip: Gebruik de toegankelijkheidsknop rechtsonder voor vergroting of voorleeshulp.
                         </p>
                     </div>
+                    
+                    {{-- TIMELINE UI --}}
+                    <div id="timeline" class="timeline-container" onclick="handleTimelineClick(event)" title="Klik om een event te plannen">
+                        <div id="timeline-track" class="timeline-track">
+                            {{-- Day/Night Zones --}}
+                            <div class="timeline-night-zone" style="left: 0%; width: 25%;"></div> {{-- 00:00 - 06:00 --}}
+                            <div class="timeline-night-zone" style="left: 91.66%; width: 8.33%;"></div> {{-- 22:00 - 24:00 --}}
+                            
+                            {{-- Rush Hours --}}
+                            <div class="timeline-rush-hour" style="left: 29.16%; width: 8.33%;">OCHTEND</div> {{-- 07:00 - 09:00 --}}
+                            <div class="timeline-rush-hour" style="left: 68.75%; width: 8.33%;">AVOND</div> {{-- 16:30 - 18:30 --}}
+
+                            {{-- Hour Markers --}}
+                            @for($h=0; $h<=24; $h+=2)
+                                <div class="timeline-hour-marker" style="left: {{ ($h/24)*100 }}%">{{ $h }}</div>
+                            @endfor
+
+                            {{-- Dynamic Elements (Playhead, Events) --}}
+                            <div id="timeline-events-layer"></div>
+                            <div id="timeline-playhead" class="timeline-playhead" style="left: 33.33%"></div>
+                        </div>
+                    </div>
+
+                    {{-- SCHEDULE EVENT MODAL --}}
+                    <div id="schedule-modal" class="fixed inset-0 z-[120] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center transition-all">
+                        <div class="bg-white rounded-xl shadow-2xl p-6 w-80 transform scale-100 transition-transform">
+                            <h3 class="font-bold text-lg mb-4 text-gray-800">Event Plannen</h3>
+                            <p class="text-sm text-gray-600 mb-4">Starttijd: <span id="schedule-time-display" class="font-bold text-blue-600">12:00</span></p>
+                            
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Kies Event</label>
+                            <select id="schedule-event-select" class="w-full border-gray-300 rounded-lg shadow-sm p-2 mb-4 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                @foreach($jsEventsData as $event)
+                                    <option value="{{ $event['id'] }}">{{ $event['name'] }} ({{ $event['duration'] }}m)</option>
+                                @endforeach
+                            </select>
+
+                            <div class="flex justify-end space-x-2">
+                                <button onclick="closeScheduleModal()" class="px-3 py-2 text-gray-500 hover:bg-gray-100 rounded-lg text-sm font-medium">Annuleren</button>
+                                <button onclick="confirmSchedule()" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md text-sm font-bold">Inplannen</button>
+                            </div>
+                        </div>
+                    </div>
 
                     {{-- LIVE FEEDBACK (Bestaand) --}}
                     <div id="live-feedback" class="fixed top-28 left-1/2 transform -translate-x-1/2 z-[100] w-auto min-w-[300px] text-center hidden pointer-events-none transition-all duration-200"></div>
                     
                     {{-- THE GRID CONTAINER --}}
-                    <div class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 flex flex-col items-center justify-center">
+                    <div 
+                        id="city-grid"
+                        class="bg-[#eef2f5] p-2 lg:p-5 rounded-lg shadow-inner w-full box-border border border-gray-200 flex flex-col items-center justify-center">
                         <div class="grid grid-cols-4 grid-rows-3 gap-2 w-full aspect-[4/3]">
                             @for($i = 0; $i < 12; $i++)
                                 <div id="cell-{{ $i }}" onclick="handleCellClick({{ $i }})"
@@ -466,77 +685,80 @@
                             @endfor
                         </div>
                     </div>
+                    <br>
+                    <button
+                        id="exportPdfBtn"
+                        class="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition"
+                    >
+                        Export as PDF
+                    </button>
                 </section>
 
                 {{-- KOLOM 3: Score & Metrics --}}
                 <aside class="w-full lg:w-1/4 min-w-[250px] flex flex-col gap-5">
 
+                    {{-- ADD COMMENT MODAL (Geoptimaliseerd) --}}
+                    <div id="comment-modal" class="fixed inset-0 z-[100] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center transition-all duration-300">
+                        <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform scale-100 transition-transform">
+                            <h3 class="font-bold text-lg mb-4 text-gray-800">Notitie toevoegen</h3>
+                            
+                            <textarea id="new-comment-text" 
+                                      {{-- NIEUW: Stop event propagation zodat de rest van de app niet meeluistert --}}
+                                      onkeydown="event.stopPropagation()"
+                                      class="w-full border-gray-300 rounded-lg shadow-sm p-3 mb-4 focus:border-blue-500 focus:ring focus:ring-blue-200 transition-all" 
+                                      rows="3" 
+                                      placeholder="Typ hier je opmerking voor de planners..."></textarea>
+                            
+                            <div class="flex justify-end space-x-2">
+                                <button onclick="closeCommentModal()" 
+                                        class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg font-medium transition-colors">
+                                    Annuleren
+                                </button>
+                                <button onclick="saveComment()" 
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-colors font-bold flex items-center">
+                                    <span>Opslaan</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
+                    {{-- VIEW COMMENT MODAL --}}
+                    <div id="view-comment-modal" class="fixed inset-0 z-[110] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center transition-all duration-300">
+                        <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform scale-100 transition-transform">
+                            
+                            {{-- Header --}}
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 id="view-comment-author" class="font-bold text-lg text-gray-800">Naam Auteur</h3>
+                                    <span id="view-comment-date" class="text-xs text-gray-400">Datum</span>
+                                </div>
+                                <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
 
-               
-{{-- ADD COMMENT MODAL (Geoptimaliseerd) --}}
-<div id="comment-modal" class="fixed inset-0 z-[100] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center transition-all duration-300">
-    {{-- VERWIJDERD: backdrop-blur-sm (Dit is vaak de oorzaak van lag) --}}
-    
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform scale-100 transition-transform">
-        <h3 class="font-bold text-lg mb-4 text-gray-800">Notitie toevoegen</h3>
-        
-        <textarea id="new-comment-text" 
-                  {{-- NIEUW: Stop event propagation zodat de rest van de app niet meeluistert --}}
-                  onkeydown="event.stopPropagation()"
-                  class="w-full border-gray-300 rounded-lg shadow-sm p-3 mb-4 focus:border-blue-500 focus:ring focus:ring-blue-200 transition-all" 
-                  rows="3" 
-                  placeholder="Typ hier je opmerking voor de planners..."></textarea>
-        
-        <div class="flex justify-end space-x-2">
-            <button onclick="closeCommentModal()" 
-                    class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg font-medium transition-colors">
-                Annuleren
-            </button>
-            <button onclick="saveComment()" 
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-colors font-bold flex items-center">
-                <span>Opslaan</span>
-            </button>
-        </div>
-    </div>
-</div>
-{{-- COMMENT MODAL (Verborgen) --}}
-{{-- VIEW COMMENT MODAL --}}
-<div id="view-comment-modal" class="fixed inset-0 z-[110] hidden bg-gray-900 bg-opacity-50 flex items-center justify-center transition-all duration-300">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform scale-100 transition-transform">
-        
-        {{-- Header --}}
-        <div class="flex justify-between items-start mb-4">
-            <div>
-                <h3 id="view-comment-author" class="font-bold text-lg text-gray-800">Naam Auteur</h3>
-                <span id="view-comment-date" class="text-xs text-gray-400">Datum</span>
-            </div>
-            <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
+                            {{-- Content --}}
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 mb-6 text-gray-700 italic" id="view-comment-content">
+                                "Hier komt de tekst..."
+                            </div>
 
-        {{-- Content --}}
-        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 mb-6 text-gray-700 italic" id="view-comment-content">
-            "Hier komt de tekst..."
-        </div>
+                            {{-- Actions --}}
+                            <div class="flex flex-col gap-2">
+                                
+                                {{-- RESOLVE BUTTON (Alleen voor Planners/Admins) --}}
+                                <button id="btn-resolve" onclick="resolveCurrentComment()" class="w-full py-2 px-4 rounded font-bold text-white transition-colors flex justify-center items-center">
+                                    </button>
+                                @if(Auth::check() &&Auth::user()->hasRole('policy_maker'))
+                                {{-- DELETE BUTTON (Alleen voor de eigenaar) --}}
+                                <button id="btn-delete" onclick="deleteCurrentComment()" class="w-full py-2 px-4 bg-red-100 text-red-700 border border-red-200 rounded hover:bg-red-200 transition font-medium flex justify-center items-center mt-2">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    Verwijderen
+                                </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
 
-        {{-- Actions --}}
-        <div class="flex flex-col gap-2">
-            
-            {{-- RESOLVE BUTTON (Alleen voor Planners/Admins) --}}
-            <button id="btn-resolve" onclick="resolveCurrentComment()" class="w-full py-2 px-4 rounded font-bold text-white transition-colors flex justify-center items-center">
-                </button>
-            @if(Auth::check() &&Auth::user()->hasRole('policy_maker'))
-            {{-- DELETE BUTTON (Alleen voor de eigenaar) --}}
-            <button id="btn-delete" onclick="deleteCurrentComment()" class="w-full py-2 px-4 bg-red-100 text-red-700 border border-red-200 rounded hover:bg-red-200 transition font-medium flex justify-center items-center mt-2">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                Verwijderen
-            </button>
-            @endif
-        </div>
-    </div>
-</div>
                     {{-- 1. GLOBAL AVERAGE SCORE CARD --}}
                     <article class="bg-[#448a28] p-5 text-white font-bold flex justify-between items-center shadow-lg rounded-lg transform hover:scale-105 transition-transform relative overflow-hidden">
                         <div class="flex flex-col z-10">
@@ -604,10 +826,87 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
     {{-- JAVASCRIPT LOGIC --}}
     <script>
-        const currentUserId = {{ auth()->id() }};
+
+    const currentUserId = {{ auth()->id() }};
     const currentUserRole = "{{ auth()->user()->role->value ?? 'guest' }}"; // Voor de zekerheid
+
+    // Grid state
+    window.currentGridState = window.currentGridState || [];
+    // QoL scores
+    window.currentScores = window.currentScores || {};
+    // Active events
+    window.activeEvents = window.activeEvents || [];
+
+    /* Called whenever a grid cell is updated */
+    function onCellUpdate(gridState) {
+        window.currentGridState = [...gridState];
+    }
+
+    /* Called after Quality of Life scores are recalculated */
+    function onScoreUpdate(scores) {
+        window.currentScores = { ...scores };
+    }
+
+    /* Called when a simulation event becomes active */
+    function onEventStart(event) {
+        if (!window.activeEvents.some(e => e.id === event.id)) {
+            window.activeEvents.push({
+                id: event.id,
+                name: event.name
+            });
+        }
+    }
+
+    /* Called when a simulation event ends */
+    function onEventEnd(eventId) {
+        window.activeEvents = window.activeEvents.filter(e => e.id !== eventId);
+    }
+    
+    document.getElementById('exportPdfBtn')?.addEventListener('click', async () => {
+        const gridElement = document.getElementById('city-grid');
+        if (!gridElement) return alert('City grid not found');
+
+        try {
+            // Capture grid as a canvas
+            const canvas = await html2canvas(gridElement, {
+                backgroundColor: '#ffffff',
+                scale: 2
+            });
+
+            const payload = {
+                grid_state: window.currentGridState, // plain data
+                scores: window.currentScores,        // plain data
+                events: window.activeEvents || [],   // plain data
+                map_image: canvas.toDataURL('image/png') // map screenshot
+            };
+
+            // Send to backend for PDF generation
+            response = await fetch('/simulation/export-pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'simulation-report.pdf';
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error('PDF export failed:', error);
+            alert('Failed to export PDF');
+        }
+    });
 
        // --- KEYBOARD ACCESSIBILITY LOGIC (UPDATED) ---
         let keyboardSourceId = null;
@@ -710,14 +1009,34 @@
 
             metrics.forEach(m => currentScores[m.id] = 100);
 
+            const isNight = dayNightCycleEnabled && (gameTime < 360 || gameTime > 1320);
+
             // Add Grid Impacts
             gridState.forEach(funcIndex => {
                 if (!funcIndex || funcIndex === 0) return;
                 const func = availableFunctions[funcIndex];
                 if (!func) return;
 
-                if (func.impacts && typeof func.impacts === 'object') {
-                    for (const [metricId, value] of Object.entries(func.impacts)) {
+                if (func.impacts && Array.isArray(func.impacts)) {
+                    func.impacts.forEach(impactData => {
+                        const metricId = impactData.metric_id;
+                        let val = Number(impactData.value) || 0;
+                        const cond = impactData.condition || 'always';
+
+                        // CHECK CONDITION
+                        if (dayNightCycleEnabled) {
+                            if (cond === 'day_only' && isNight) return; // Skip day impacts at night
+                            if (cond === 'night_only' && !isNight) return; // Skip night impacts at day
+                        }
+
+                        if (currentScores[metricId] !== undefined) {
+                            currentScores[metricId] += val;
+                        }
+                    });
+                }
+                // Fallback for old object structure if mixed data (Optional)
+                else if (func.impacts && typeof func.impacts === 'object') {
+                     for (const [metricId, value] of Object.entries(func.impacts)) {
                         if (currentScores[metricId] !== undefined) {
                             currentScores[metricId] += (Number(value) || 0);
                         }
@@ -763,6 +1082,9 @@
 
             let newAverage = totalScore / metrics.length;
             updateGlobalScore(newAverage);
+
+            // save data into the js
+            onScoreUpdate(currentScores);
         }
 
         // --- 2. GLOBAL SCORE & VISUAL FEEDBACK LOGIC ---
@@ -806,6 +1128,12 @@
 
             const func = availableFunctions.find(f => f.id === dbId);
             const indexInArray = availableFunctions.indexOf(func);
+
+            const imgEl = ev.currentTarget.querySelector('img');
+            if (imgEl) {
+                func.image = imgEl.src;  // overwrite JS object with correct URL
+            }
+
             currentDragIndex = indexInArray;
             ev.dataTransfer.setData("funcIndex", indexInArray);
             ev.dataTransfer.effectAllowed = "copy";
@@ -917,6 +1245,9 @@
             }
             // 1. Update de status in het geheugen
             gridState[cellIndex] = funcIndex;
+
+            // save data into the js
+            onCellUpdate(gridState);
             
             // 2. Teken de nieuwe inhoud van de cel (Functie plaatje of leeg)
             // Dit wist tijdelijk ook het comment-icoon!
@@ -989,28 +1320,7 @@
             }
         }
 
-        function triggerEvent(eventId) {
-            const eventDef = eventDefinitions.find(e => e.id === eventId);
-            if(!eventDef) return;
-            [...activeEvents].forEach(existingEvent => endEvent(existingEvent.id));
-            activeEvents.push(eventDef);
-
-            document.getElementById('event-name').innerText = eventDef.name;
-            document.getElementById('active-event-display').classList.remove('hidden');
-            const btn = document.getElementById(`btn-event-${eventId}`);
-            if(btn) btn.classList.add('bg-red-50', 'border-metro-darkred', 'text-metro-darkred', 'ring-1', 'ring-metro-darkred');
-
-            calculateMetrics();
-            setTimeout(() => { endEvent(eventId); }, 5000);
-        }
-
-        function endEvent(eventId) {
-            activeEvents = activeEvents.filter(e => e.id !== eventId);
-            if(activeEvents.length === 0) document.getElementById('active-event-display').classList.add('hidden');
-            const btn = document.getElementById(`btn-event-${eventId}`);
-            if(btn) btn.classList.remove('bg-red-50', 'border-metro-darkred', 'text-metro-darkred', 'ring-1', 'ring-metro-darkred');
-            calculateMetrics();
-        }
+        /* Old Event Logic Removed - See Refactored Logic at Bottom */
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSynthSound(type) {
@@ -1091,7 +1401,25 @@
             impactsList.innerHTML = '';
             let hasImpacts = false;
 
-            if (func.impacts && typeof func.impacts === 'object') {
+            // HANDLE ARRAY STRUCTURE (NEW)
+            if (func.impacts && Array.isArray(func.impacts)) {
+                 func.impacts.forEach(item => {
+                    const valNum = Number(item.value);
+                    if(valNum == 0) return;
+                    hasImpacts = true;
+                    const name = getMetricName(item.metric_id);
+                    const colorClass = valNum > 0 ? 'text-green-600' : 'text-red-500';
+                    const sign = valNum > 0 ? '+' : '';
+                    
+                    let suffix = '';
+                    if(item.condition === 'day_only') suffix = ' <span class="text-[10px] text-yellow-600 bg-yellow-100 px-1 rounded">☀️</span>';
+                    if(item.condition === 'night_only') suffix = ' <span class="text-[10px] text-indigo-600 bg-indigo-100 px-1 rounded">🌙</span>';
+
+                    impactsList.innerHTML += `<li class="flex justify-between items-center border-b border-gray-50 pb-1 last:border-0"><span class="text-gray-600">${name}</span><div class="flex items-center"><span class="font-bold ${colorClass} text-xs">${sign}${valNum}</span>${suffix}</div></li>`;
+                 });
+            }
+            // HANDLE OLD OBJECT STRUCTURE (FALLBACK)
+            else if (func.impacts && typeof func.impacts === 'object') {
                 for (const [metricId, value] of Object.entries(func.impacts)) {
                     if(value == 0) continue;
                     hasImpacts = true;
@@ -1112,15 +1440,31 @@
                 const nFuncIndex = gridState[nIndex];
                 if (nFuncIndex && nFuncIndex !== 0) {
                     const neighborFunc = availableFunctions[nFuncIndex];
+                    
+                    // Helper to process impacts regardless of structure
+                    const processImpact = (mId, val, cond) => {
+                          const valNum = Number(val);
+                          if (valNum === 0) return;
+
+                          // Logic: Synergy is tricky with time conditions.
+                          // For now, let's assume synergy is "potential" impact
+                          // OR ideally check current time. But tooltips are static-ish.
+                          // Let's just sum it up and maybe show max potential?
+                          
+                          const mName = getMetricName(mId);
+                          if (!receivedEffects[mName]) receivedEffects[mName] = { value: 0, sources: [] };
+                          receivedEffects[mName].value += valNum;
+                          if (!receivedEffects[mName].sources.includes(neighborFunc.name)) {
+                              receivedEffects[mName].sources.push(neighborFunc.name);
+                          }
+                    };
+
                     if (neighborFunc.impacts) {
-                        for (const [metricId, value] of Object.entries(neighborFunc.impacts)) {
-                            const valNum = Number(value);
-                            if (valNum === 0) continue;
-                            const mName = getMetricName(metricId);
-                            if (!receivedEffects[mName]) receivedEffects[mName] = { value: 0, sources: [] };
-                            receivedEffects[mName].value += valNum;
-                            if (!receivedEffects[mName].sources.includes(neighborFunc.name)) {
-                                receivedEffects[mName].sources.push(neighborFunc.name);
+                        if(Array.isArray(neighborFunc.impacts)) {
+                            neighborFunc.impacts.forEach(i => processImpact(i.metric_id, i.value, i.condition));
+                        } else {
+                            for (const [metricId, value] of Object.entries(neighborFunc.impacts)) {
+                                processImpact(metricId, value, 'always');
                             }
                         }
                     }
@@ -1259,195 +1603,193 @@
         }
 
         // --- REV.2: COMMENTS LOGIC ---
-let commentMode = false;
-let activeCommentCell = null;
-let allComments = [];
+        let commentMode = false;
+        let activeCommentCell = null;
+        let allComments = [];
 
-// 1. Initialisatie
-document.addEventListener('DOMContentLoaded', () => {
-    fetchComments();
-});
-
-function fetchComments() {
-    fetch('/comments')
-        .then(r => r.json())
-        .then(data => {
-            allComments = data;
-            renderComments();
+        // 1. Initialisatie
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchComments();
         });
-}
 
-// 2. Modus Schakelen
-function toggleCommentMode() {
-    commentMode = !commentMode;
-    const btn = document.getElementById('toggle-comment-mode');
-    const txt = document.getElementById('comment-mode-text');
-    
-    if (commentMode) {
-        btn.classList.replace('bg-yellow-500', 'bg-red-500');
-        txt.innerText = "Notitie Modus: AAN";
-        document.body.style.cursor = "help"; // Verander cursor
-    } else {
-        btn.classList.replace('bg-red-500', 'bg-yellow-500');
-        txt.innerText = "Notitie Modus: UIT";
-        document.body.style.cursor = "default";
-    }
-}
-
-// 3. Grid Click Interceptie (Pas je bestaande startHold/Click logic aan!)
-// Je moet in je HTML de onclick van de cell aanpassen of een nieuwe functie maken.
-// Beter: Voeg dit toe aan je startHold of maak een aparte 'handleCellClick' functie.
-
-function handleCellClick(index) {
-    if (commentMode) {
-        activeCommentCell = index;
-        document.getElementById('comment-modal').classList.remove('hidden');
-        document.getElementById('new-comment-text').focus();
-        return;
-    }
-
-    selectCellForApproval(index);
-}
-
-function closeCommentModal() {
-    document.getElementById('comment-modal').classList.add('hidden');
-    document.getElementById('new-comment-text').value = '';
-}
-
-function saveComment() {
-    const content = document.getElementById('new-comment-text').value;
-    if (!content) return;
-
-    fetch('/comments', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({ 
-            grid_index: activeCommentCell, 
-            content: content 
-        })
-    })
-    .then(r => r.json())
-    .then(newComment => {
-        allComments.push(newComment);
-        renderComments();
-        closeCommentModal();
-        toggleCommentMode(); // Zet modus uit na plaatsen (optioneel)
-    });
-}
-
-// 4. Renderen op Grid
-function renderComments() {
-    // Verwijder oude iconen
-    document.querySelectorAll('.comment-icon').forEach(e => e.remove());
-
-    allComments.forEach(comment => {
-        const cell = document.getElementById(`cell-${comment.grid_index}`);
-        if (!cell) return;
-
-        const icon = document.createElement('div');
-        icon.className = `comment-icon ${comment.is_resolved ? 'resolved' : ''}`;
-        icon.innerHTML = '💬';
-        icon.title = `${comment.user.name}: ${comment.content}`;
-        
-        // Klik op icon om te lezen/resolven
-        icon.onclick = (e) => {
-            e.stopPropagation(); // Voorkom dat je de cell eronder klikt
-            showCommentDetails(comment);
-        };
-
-        cell.appendChild(icon);
-    });
-}
-
-// Variabele om bij te houden welke comment open staat
-    let openCommentId = null;
-
-    function showCommentDetails(comment) {
-        openCommentId = comment.id;
-        const modal = document.getElementById('view-comment-modal');
-        
-        // 1. Vul de data in
-        document.getElementById('view-comment-author').innerText = comment.user.name;
-        document.getElementById('view-comment-content').innerText = `"${comment.content}"`;
-        
-        // Datum mooi formatteren
-        const date = new Date(comment.created_at);
-        document.getElementById('view-comment-date').innerText = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-        // 2. Setup Resolve Knop (Status checken)
-        const resolveBtn = document.getElementById('btn-resolve');
-        if (comment.is_resolved) {
-            resolveBtn.className = "w-full py-2 px-4 rounded font-bold text-white bg-gray-400 hover:bg-gray-500";
-            resolveBtn.innerHTML = "🔓 Heropenen";
-        } else {
-            resolveBtn.className = "w-full py-2 px-4 rounded font-bold text-white bg-green-500 hover:bg-green-600";
-            resolveBtn.innerHTML = "✅ Markeren als Opgelost";
+        function fetchComments() {
+            fetch('/comments')
+                .then(r => r.json())
+                .then(data => {
+                    allComments = data;
+                    renderComments();
+                });
         }
 
-        // // 3. Setup Delete Knop (Alleen tonen als jij de eigenaar bent)
-        // const deleteBtn = document.getElementById('btn-delete');
-        // if (comment.user_id === currentUserId) {
-        //     deleteBtn.classList.remove('hidden');
-        // } else {
-        //     deleteBtn.classList.add('hidden');
-        // }
-
-        // 4. Toon de modal
-        modal.classList.remove('hidden');
-    }
-
-    function closeViewModal() {
-        document.getElementById('view-comment-modal').classList.add('hidden');
-        openCommentId = null;
-    }
-
-    // --- ACTIES ---
-
-    function resolveCurrentComment() {
-        if (!openCommentId) return;
-
-        fetch(`/comments/${openCommentId}/resolve`, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-        })
-        .then(r => r.json())
-        .then(updatedComment => {
-            // Update lokale lijst en her-render
-            const index = allComments.findIndex(c => c.id === updatedComment.id);
-            if(index !== -1) allComments[index] = updatedComment;
+        // 2. Modus Schakelen
+        function toggleCommentMode() {
+            commentMode = !commentMode;
+            const btn = document.getElementById('toggle-comment-mode');
+            const txt = document.getElementById('comment-mode-text');
             
-            renderComments();
-            closeViewModal();
-            showNotification("Status aangepast!", "success");
-        });
-    }
-
-    function deleteCurrentComment() {
-        if (!openCommentId) return;
-        
-       
-
-        fetch(`/comments/${openCommentId}`, {
-            method: 'DELETE',
-            headers: { 
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            if (commentMode) {
+                btn.classList.replace('bg-yellow-500', 'bg-red-500');
+                txt.innerText = "Notitie Modus: AAN";
+                document.body.style.cursor = "help"; // Verander cursor
+            } else {
+                btn.classList.replace('bg-red-500', 'bg-yellow-500');
+                txt.innerText = "Notitie Modus: UIT";
+                document.body.style.cursor = "default";
             }
-        })
-        .then(response => {
-            if (response.ok) {
-                // Verwijder uit lokale array
-                allComments = allComments.filter(c => c.id !== openCommentId);
+        }
+
+        // 3. Grid Click Interceptie (Pas je bestaande startHold/Click logic aan!)
+        // Je moet in je HTML de onclick van de cell aanpassen of een nieuwe functie maken.
+        // Beter: Voeg dit toe aan je startHold of maak een aparte 'handleCellClick' functie.
+
+        function handleCellClick(index) {
+            if (commentMode) {
+                activeCommentCell = index;
+                document.getElementById('comment-modal').classList.remove('hidden');
+                document.getElementById('new-comment-text').focus();
+                return;
+            }
+
+            selectCellForApproval(index);
+        }
+
+        function closeCommentModal() {
+            document.getElementById('comment-modal').classList.add('hidden');
+            document.getElementById('new-comment-text').value = '';
+        }
+
+        function saveComment() {
+            const content = document.getElementById('new-comment-text').value;
+            if (!content) return;
+
+            fetch('/comments', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ 
+                    grid_index: activeCommentCell, 
+                    content: content 
+                })
+            })
+            .then(r => r.json())
+            .then(newComment => {
+                allComments.push(newComment);
+                renderComments();
+                closeCommentModal();
+                toggleCommentMode(); // Zet modus uit na plaatsen (optioneel)
+            });
+        }
+
+        // 4. Renderen op Grid
+        function renderComments() {
+            // Verwijder oude iconen
+            document.querySelectorAll('.comment-icon').forEach(e => e.remove());
+
+            allComments.forEach(comment => {
+                const cell = document.getElementById(`cell-${comment.grid_index}`);
+                if (!cell) return;
+
+                const icon = document.createElement('div');
+                icon.className = `comment-icon ${comment.is_resolved ? 'resolved' : ''}`;
+                icon.innerHTML = '💬';
+                icon.title = `${comment.user.name}: ${comment.content}`;
+                
+                // Klik op icon om te lezen/resolven
+                icon.onclick = (e) => {
+                    e.stopPropagation(); // Voorkom dat je de cell eronder klikt
+                    showCommentDetails(comment);
+                };
+
+                cell.appendChild(icon);
+            });
+        }
+
+        // Variabele om bij te houden welke comment open staat
+        let openCommentId = null;
+
+        function showCommentDetails(comment) {
+            openCommentId = comment.id;
+            const modal = document.getElementById('view-comment-modal');
+            
+            // 1. Vul de data in
+            document.getElementById('view-comment-author').innerText = comment.user.name;
+            document.getElementById('view-comment-content').innerText = `"${comment.content}"`;
+            
+            // Datum mooi formatteren
+            const date = new Date(comment.created_at);
+            document.getElementById('view-comment-date').innerText = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            // 2. Setup Resolve Knop (Status checken)
+            const resolveBtn = document.getElementById('btn-resolve');
+            if (comment.is_resolved) {
+                resolveBtn.className = "w-full py-2 px-4 rounded font-bold text-white bg-gray-400 hover:bg-gray-500";
+                resolveBtn.innerHTML = "🔓 Heropenen";
+            } else {
+                resolveBtn.className = "w-full py-2 px-4 rounded font-bold text-white bg-green-500 hover:bg-green-600";
+                resolveBtn.innerHTML = "✅ Markeren als Opgelost";
+            }
+
+            // // 3. Setup Delete Knop (Alleen tonen als jij de eigenaar bent)
+            // const deleteBtn = document.getElementById('btn-delete');
+            // if (comment.user_id === currentUserId) {
+            //      deleteBtn.classList.remove('hidden');
+            // } else {
+            //      deleteBtn.classList.add('hidden');
+            // }
+
+            // 4. Toon de modal
+            modal.classList.remove('hidden');
+        }
+
+        function closeViewModal() {
+            document.getElementById('view-comment-modal').classList.add('hidden');
+            openCommentId = null;
+        }
+
+        // --- ACTIES ---
+
+        function resolveCurrentComment() {
+            if (!openCommentId) return;
+
+            fetch(`/comments/${openCommentId}/resolve`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+            })
+            .then(r => r.json())
+            .then(updatedComment => {
+                // Update lokale lijst en her-render
+                const index = allComments.findIndex(c => c.id === updatedComment.id);
+                if(index !== -1) allComments[index] = updatedComment;
+                
                 renderComments();
                 closeViewModal();
-                showNotification("Notitie verwijderd.", "info");
-            } else {
-                showNotification("Fout bij verwijderen.", "error");
-            }
-        });
-    }
+                showNotification("Status aangepast!", "success");
+            });
+        }
+
+        function deleteCurrentComment() {
+            if (!openCommentId) return;
+            
+            fetch(`/comments/${openCommentId}`, {
+                method: 'DELETE',
+                headers: { 
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Verwijder uit lokale array
+                    allComments = allComments.filter(c => c.id !== openCommentId);
+                    renderComments();
+                    closeViewModal();
+                    showNotification("Notitie verwijderd.", "info");
+                } else {
+                    showNotification("Fout bij verwijderen.", "error");
+                }
+            });
+        }
         function approveSelectedCell() {
             if (selectedCellForApproval === null) {
                 showNotification("Selecteer eerst een kavel.", "error");
@@ -1532,6 +1874,497 @@ function renderComments() {
             showNotification("Kavel ontgrendeld.", "success");
         }
 
+
+    // --- SIMULATION LOOP & SPEED CONTROLS ---
+    let simulationSpeed = 1; 
+    let gameTime = 8 * 60; // 08:00
+    let dayCount = 1;
+    let lastFrameTime = performance.now();
+    let wasNight = false; // Track transition
+    const MINUTES_PER_REAL_SECOND = 1; 
+    
+    // --- TIMELINE & EVENT DATA ---
+    const rushHours = [
+        { 
+            id: 'rush_morning', 
+            name: 'Ochtendspits', 
+            start: 7*60, 
+            end: 9*60, 
+            impacts: [
+                {metric_name: 'Leefbaarheid', adjustment: -5}, 
+                {metric_name: 'Bereikbaarheid', adjustment: -15},
+                {metric_name: 'Verkeersdoorstroming', adjustment: -20},
+                {metric_name: 'Geluidshinder', adjustment: -10},
+                {metric_name: 'Luchtkwaliteit', adjustment: -10}
+            ] 
+        },
+        { 
+            id: 'rush_evening', 
+            name: 'Avondspits', 
+            start: 16*60 + 30, 
+            end: 18*60 + 30, 
+            impacts: [
+                {metric_name: 'Leefbaarheid', adjustment: -5}, 
+                {metric_name: 'Bereikbaarheid', adjustment: -15},
+                {metric_name: 'Verkeersdoorstroming', adjustment: -20},
+                {metric_name: 'Geluidshinder', adjustment: -10},
+                {metric_name: 'Luchtkwaliteit', adjustment: -10},
+                {metric_name: 'Energieverbruik', adjustment: -15}
+            ] 
+        }
+    ];
+    
+    let scheduledEvents = []; // { id, eventId, startDay, startTime, duration, name, spawned: false }
+    let activeRushHours = []; // IDs of currently active rush hours
+    let dayNightCycleEnabled = true;
+
+    function toggleDayNight() {
+        dayNightCycleEnabled = !dayNightCycleEnabled;
+        const btn = document.getElementById('btn-daynight-toggle');
+        const knob = document.getElementById('daynight-knob');
+        
+        if (dayNightCycleEnabled) {
+            btn.classList.replace('bg-gray-300', 'bg-green-500');
+            knob.classList.replace('left-0.5', 'left-4');
+            showNotification("Dag/Nacht cyclus AAN", "info");
+        } else {
+            btn.classList.replace('bg-green-500', 'bg-gray-300');
+            knob.classList.replace('left-4', 'left-0.5');
+            showNotification("Dag/Nacht cyclus UIT (Altijd Dag)", "info");
+        }
+        updateDayNightCycle();
+        calculateMetrics(); // Recalculate immediately
+    }
+
+    function setSpeed(speed) {
+        simulationSpeed = speed;
+        
+        // Toggle class for CSS visibility (e.g., hiding X buttons)
+        const container = document.querySelector('.simulation-container');
+        if (container) {
+            if (speed > 0) {
+                container.classList.add('simulation-playing');
+            } else {
+                container.classList.remove('simulation-playing');
+            }
+        }
+
+        [0, 1, 2, 5, 10].forEach(s => {
+            const btn = document.getElementById(`btn-speed-${s}`);
+            if (btn) btn.classList.toggle('bg-blue-100', s === speed);
+        });
+    }
+
+    function gameLoop(timestamp) {
+        const dt = (timestamp - lastFrameTime) / 1000; 
+        lastFrameTime = timestamp;
+
+        if (simulationSpeed > 0) {
+            const timeAdvance = dt * simulationSpeed * MINUTES_PER_REAL_SECOND;
+            gameTime += timeAdvance;
+
+            if (gameTime >= 1440) {
+                gameTime -= 1440;
+                dayCount++;
+                // Reset 'spawned' flag for daily events if we had them, 
+                // but for one-off scheduled events, we might clean them up.
+                // Rush hours reset automatically because they are time-window based.
+            }
+
+            updateClockUI();
+            updateDayNightCycle();
+            
+            // CHECK DAY/NIGHT TRANSITION
+            const isNight = gameTime < 360 || gameTime > 1320;
+            if (isNight !== wasNight) {
+                wasNight = isNight;
+                calculateMetrics(); // Recalculate scores on transition
+            }
+
+            checkEvents();
+            renderTimeline();
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function updateClockUI() {
+        const hours = Math.floor(gameTime / 60);
+        const minutes = Math.floor(gameTime % 60);
+        const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        document.getElementById('game-clock-display').innerText = `Dag ${dayCount} - ${timeStr}`;
+    }
+
+    function updateDayNightCycle() {
+        // If disabled, force Day mode
+        if (!dayNightCycleEnabled) {
+             const icon = document.getElementById('game-clock-icon');
+             const gridContainer = document.querySelector('.bg-\\[\\#eef2f5\\]') || document.querySelector('.bg-slate-800');
+             
+             if (icon.innerText !== '☀️') icon.innerText = '☀️';
+             if (gridContainer && gridContainer.classList.contains('bg-slate-800')) {
+                gridContainer.classList.remove('bg-slate-800');
+                gridContainer.classList.add('bg-[#eef2f5]');
+                document.querySelectorAll('.cell-content').forEach(el => el.classList.remove('brightness-75'));
+             }
+             return;
+        }
+
+        const isNight = gameTime < 360 || gameTime > 1320;
+        const icon = document.getElementById('game-clock-icon');
+        // Use more robust selector or variable
+        let gridContainer = document.querySelector('.bg-\\[\\#eef2f5\\]'); 
+        if (!gridContainer) gridContainer = document.querySelector('.bg-slate-800'); // Check if already toggled
+
+        if (isNight) {
+            if (icon.innerText !== '🌙') icon.innerText = '🌙';
+            if (gridContainer && !gridContainer.classList.contains('bg-slate-800')) {
+                gridContainer.classList.remove('bg-[#eef2f5]');
+                gridContainer.classList.add('bg-slate-800', 'transition-colors', 'duration-[2000ms]');
+                document.querySelectorAll('.cell-content').forEach(el => el.classList.add('brightness-75'));
+            }
+        } else {
+            if (icon.innerText !== '☀️') icon.innerText = '☀️';
+            if (gridContainer && gridContainer.classList.contains('bg-slate-800')) {
+                gridContainer.classList.remove('bg-slate-800');
+                gridContainer.classList.add('bg-[#eef2f5]');
+                document.querySelectorAll('.cell-content').forEach(el => el.classList.remove('brightness-75'));
+            }
+        }
+    }
+
+    // --- TIMELINE RENDERING ---
+    function renderTimeline() {
+        const playhead = document.getElementById('timeline-playhead');
+        const layer = document.getElementById('timeline-events-layer');
+        
+        // 1. Move Playhead
+        const percent = (gameTime / 1440) * 100;
+        playhead.style.left = `${percent}%`;
+
+        // 2. Render Planned Events (Optimization: Only re-render if count changes or force update?)
+        // For simplicity, we clear and redraw. In a huge app, we'd diff.
+        layer.innerHTML = ''; 
+
+        // Draw Scheduled Events
+        scheduledEvents.forEach(evt => {
+            if (evt.startDay !== dayCount) return; 
+            
+            const startPct = (evt.startTime / 1440) * 100;
+            const widthPct = (evt.duration / 1440) * 100;
+            
+            const el = document.createElement('div');
+            el.className = 'timeline-event-block cursor-pointer hover:bg-blue-600 transition-colors group'; 
+            el.style.left = `${startPct}%`;
+            el.style.width = `${widthPct}%`;
+            
+            // Event Name Span
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'truncate';
+            nameSpan.innerText = evt.name;
+            el.appendChild(nameSpan);
+
+            // Delete Button (X)
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-event-btn';
+            delBtn.innerHTML = '×';
+            delBtn.title = 'Event verwijderen';
+            
+            // Use addEventListener for robustness
+            delBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Stop bubbling to timeline
+                deleteScheduledEvent(evt.id);
+            });
+            
+            el.appendChild(delBtn);
+
+            if (evt.spawned) el.style.opacity = '0.5'; 
+            
+            // Prevent block click from bubbling too
+            el.addEventListener('click', (e) => e.stopPropagation());
+            
+            layer.appendChild(el);
+        });
+
+        // Draw Active Manual Events (triggered via buttons)
+        activeEvents.forEach(evt => {
+            if (!evt.isManual) return; // Skip scheduled ones as they are drawn above
+             
+            // Calculate current progress
+            const startMod = evt.startTime; // simplified
+            // Complex logic needed if event spans midnight, but for now assume same day
+            
+            // Just skipping manual visualization on timeline for now to keep it clean, 
+            // or we could add them if needed.
+        });
+    }
+
+    // --- INTERACTION ---
+    let pendingScheduleTime = 0;
+    let isScrubbing = false;
+
+    // Initialize Scrubbing Listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const playhead = document.getElementById('timeline-playhead');
+        const track = document.getElementById('timeline-track');
+        
+        if (!playhead || !track) return;
+
+        // Mouse Down on Handle (CSS pseudo-element triggers click on parent if pointer-events:auto)
+        // But since pseudo-element events are tricky, we rely on the parent having pointer-events:none
+        // except the handle. Wait, CSS says .timeline-playhead has pointer-events:none.
+        // We need a wrapper or attach to track for 'catch all' if we want easy dragging?
+        // Actually, I set pointer-events: auto on ::after.
+        // JS cannot directly attach to ::after. 
+        // Best approach: Attach to the timeline track and detect if we are close to playhead OR
+        // Create a real DOM element for the handle instead of ::after.
+        
+        // Let's swap the CSS approach slightly in JS rendering to make it robust:
+        // We will just use the track for 'mousedown' and check logic, OR simpler:
+        // Attach event to the timeline container for 'mousedown'.
+    });
+
+    let dragStartX = 0;
+    
+    function initScrubbing() {
+        const timeline = document.getElementById('timeline');
+        
+        timeline.addEventListener('mousedown', (e) => {
+            if (simulationSpeed > 0) return;
+            // Ignore if clicking on event block/delete
+            if (e.target.closest('.timeline-event-block') || e.target.closest('.delete-event-btn')) return;
+
+            isScrubbing = true;
+            dragStartX = e.clientX;
+            window.wasDragging = false;
+            
+            // Optional: Scrub immediately on click? 
+            // scrub(e); 
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isScrubbing) {
+                e.preventDefault(); 
+                
+                // If moved more than 3px, consider it a drag
+                if (Math.abs(e.clientX - dragStartX) > 3) {
+                    window.wasDragging = true;
+                    scrub(e);
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isScrubbing = false;
+        });
+    }
+
+    function scrub(e) {
+        if (simulationSpeed > 0) return; // double check
+
+        const timeline = document.getElementById('timeline');
+        const rect = timeline.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        
+        // Clamp
+        if (x < 0) x = 0;
+        if (x > rect.width) x = rect.width;
+
+        const pct = x / rect.width;
+        gameTime = Math.floor(pct * 1440);
+
+        // Visual Updates
+        updateClockUI();
+        updateDayNightCycle();
+        renderTimeline();
+    }
+
+    // Call init
+    setTimeout(initScrubbing, 500); // Wait for DOM
+
+    function handleTimelineClick(e) {
+        if (simulationSpeed > 0) {
+            showNotification("Zet de simulatie op pauze om events te plannen.", "info");
+            return;
+        }
+        
+        // If we were scrubbing (dragged), don't open schedule modal
+        // But 'click' fires after mouseup.
+        // We can check if isScrubbing *was* true? No, it's false by now.
+        // Check movement delta? 
+        // Simpler: If the user is HOLDING the mouse down, it's scrubbing.
+        // The 'click' event triggers on mouseup. 
+        // If we modify 'handleTimelineClick' to be ignored if we just scrubbed?
+        
+        // Let's use a flag 'wasScrubbing'
+        if (window.wasDragging) {
+            window.wasDragging = false;
+            return;
+        }
+
+        // SAFETY CHECK: Ignore clicks on event blocks or delete buttons
+        if (e.target.closest('.timeline-event-block') || e.target.closest('.delete-event-btn')) {
+            return;
+        }
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const width = rect.width;
+        const pct = clickX / width;
+        
+        // Calculate Time
+        const clickedMinutes = Math.floor(pct * 1440);
+        
+        // Cannot schedule in the past of the current day
+        if (clickedMinutes < gameTime) {
+            showNotification("Je kunt niet in het verleden plannen!", "error");
+            return;
+        }
+
+        pendingScheduleTime = clickedMinutes;
+        
+        // Format time for modal
+        const h = Math.floor(pendingScheduleTime / 60);
+        const m = Math.floor(pendingScheduleTime % 60);
+        document.getElementById('schedule-time-display').innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+        
+        document.getElementById('schedule-modal').classList.remove('hidden');
+    }
+
+    function closeScheduleModal() {
+        document.getElementById('schedule-modal').classList.add('hidden');
+    }
+
+    function confirmSchedule() {
+        const select = document.getElementById('schedule-event-select');
+        const eventId = select.value;
+        const eventDef = eventDefinitions.find(e => e.id == eventId);
+        
+        if (!eventDef) return;
+
+        const duration = parseInt(eventDef.duration) || 60;
+
+        scheduledEvents.push({
+            id: Date.now(), // unique instance id
+            eventId: eventDef.id,
+            name: eventDef.name,
+            startDay: dayCount,
+            startTime: pendingScheduleTime,
+            duration: duration,
+            spawned: false,
+            def: eventDef
+        });
+
+        closeScheduleModal();
+        showNotification("Event ingepland!", "success");
+        renderTimeline();
+    }
+
+    function deleteScheduledEvent(id) {
+        scheduledEvents = scheduledEvents.filter(e => e.id !== id);
+        renderTimeline();
+        showNotification("Event verwijderd.", "info");
+    }
+
+    // --- REFACTORED EVENT LOGIC ---
+    function triggerEvent(eventId) {
+        const eventDef = eventDefinitions.find(e => e.id == eventId); // flexible equals
+        if(!eventDef) return;
+
+        // Manual trigger (immediate)
+        launchEventInstance(eventDef, true);
+    }
+
+    function launchEventInstance(eventDef, isManual = false) {
+        // Prevent duplicate type active (optional, but good for sanity)
+        if (activeEvents.find(e => e.id === eventDef.id)) return;
+
+        const durationMinutes = parseInt(eventDef.duration) || 60; 
+        
+        const activeEvent = {
+            ...eventDef,
+            startDay: dayCount,
+            startTime: gameTime,
+            endAbsoluteMinutes: (dayCount * 1440 + gameTime) + durationMinutes,
+            isManual: isManual
+        };
+
+        activeEvents.push(activeEvent);
+
+        // UI Updates
+        document.getElementById('event-name').innerText = eventDef.name;
+        document.getElementById('active-event-display').classList.remove('hidden');
+        const btn = document.getElementById(`btn-event-${eventDef.id}`);
+        if(btn) btn.classList.add('bg-red-50', 'border-metro-darkred', 'text-metro-darkred', 'ring-1', 'ring-metro-darkred');
+
+        calculateMetrics();
+        if(isManual) showNotification(`Event gestart: ${eventDef.name}`, 'info');
+    }
+
+    function checkEvents() {
+        const currentAbs = dayCount * 1440 + gameTime;
+        
+        // 1. Check Scheduled Events to Spawn
+        scheduledEvents.forEach(evt => {
+            if (!evt.spawned && evt.startDay === dayCount && gameTime >= evt.startTime) {
+                evt.spawned = true;
+                launchEventInstance(evt.def, false);
+                showNotification(`Ingepland event gestart: ${evt.name}`, 'info');
+            }
+        });
+
+        // 2. Check Rush Hours (Auto-spawn / Auto-despawn)
+        rushHours.forEach(rh => {
+            const isActiveTime = (gameTime >= rh.start && gameTime < rh.end);
+            const isRunning = activeRushHours.includes(rh.id);
+
+            if (isActiveTime && !isRunning) {
+                // START RUSH HOUR
+                activeRushHours.push(rh.id);
+                // Add temporary impacts to activeEvents list as a "System Event"
+                // OR handle it separately. To keep it simple, we push a fake event to activeEvents
+                activeEvents.push({
+                    id: rh.id,
+                    name: rh.name,
+                    impacts: rh.impacts,
+                    isSystem: true,
+                    endAbsoluteMinutes: Infinity // Managed by this loop
+                });
+                showNotification(`${rh.name} is begonnen.`, 'info');
+                calculateMetrics();
+            } else if (!isActiveTime && isRunning) {
+                // END RUSH HOUR
+                activeRushHours = activeRushHours.filter(id => id !== rh.id);
+                activeEvents = activeEvents.filter(e => e.id !== rh.id); // Remove system event
+                showNotification(`${rh.name} is afgelopen.`, 'info');
+                calculateMetrics();
+            }
+        });
+
+        // 3. Expire Active Events
+        const expiredEvents = activeEvents.filter(e => !e.isSystem && currentAbs >= e.endAbsoluteMinutes);
+        expiredEvents.forEach(e => endEvent(e.id));
+    }
+
+    // Override the old endEvent to work with the new loop
+    function endEvent(eventId) {
+        activeEvents = activeEvents.filter(e => e.id !== eventId);
+        
+        if(activeEvents.length === 0) {
+            document.getElementById('active-event-display').classList.add('hidden');
+        } else {
+            document.getElementById('event-name').innerText = activeEvents[0].name;
+        }
+
+        const btn = document.getElementById(`btn-event-${eventId}`);
+        if(btn) btn.classList.remove('bg-red-50', 'border-metro-darkred', 'text-metro-darkred', 'ring-1', 'ring-metro-darkred');
+        
+        calculateMetrics();
+    }
+
+    // START LOOP
+    requestAnimationFrame(gameLoop);
     </script>
 
     {{-- DRAG GHOST --}}

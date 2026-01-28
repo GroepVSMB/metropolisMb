@@ -78,13 +78,20 @@ class LibraryController extends Controller
 
         // Save new impacts
         if ($request->impacts) {
-            foreach ($request->impacts as $metricId => $score) {
+            foreach ($request->impacts as $metricId => $data) {
+                // $data is now ['value' => 10, 'condition' => 'always']
+                $score = $data['value'] ?? 0;
+                $cond = $data['condition'] ?? 'always';
+
                 if (!is_null($score) && $score != 0) {
-                    FunctionImpact::create([
+                    $impact = new FunctionImpact();
+                    $impact->forceFill([
                         'city_function_id' => $function->id,
                         'quality_metric_id' => $metricId,
                         'impact' => $score,
+                        'condition' => $cond
                     ]);
+                    $impact->save();
                 }
             }
         }
@@ -129,13 +136,20 @@ class LibraryController extends Controller
         $function->impacts()->delete();
 
         if ($request->impacts) {
-            foreach ($request->impacts as $metricId => $score) {
+            foreach ($request->impacts as $metricId => $data) {
+                // Handle new structure ['value' => x, 'condition' => y]
+                $score = is_array($data) ? ($data['value'] ?? 0) : $data; 
+                $cond = is_array($data) ? ($data['condition'] ?? 'always') : 'always';
+
                 if (!is_null($score) && $score != 0) {
-                    FunctionImpact::create([
+                    $impact = new FunctionImpact();
+                    $impact->forceFill([
                         'city_function_id' => $function->id,
                         'quality_metric_id' => $metricId,
                         'impact' => $score,
+                        'condition' => $cond
                     ]);
+                    $impact->save();
                 }
             }
         }
@@ -150,8 +164,14 @@ class LibraryController extends Controller
         $categories = Category::all();
         $metrics = QualityMetric::all();
 
-        // Helper array to pre-fill inputs: [metric_id => impact_value]
-        $currentImpacts = $function->impacts->pluck('impact', 'quality_metric_id')->toArray();
+        // Helper array to pre-fill inputs: [metric_id => {value, condition}]
+        $currentImpacts = [];
+        foreach($function->impacts as $imp) {
+            $currentImpacts[$imp->quality_metric_id] = [
+                'value' => $imp->impact,
+                'condition' => $imp->condition ?? 'always'
+            ];
+        }
 
         return view('library.edit', compact('function', 'categories', 'metrics', 'currentImpacts'));
     }

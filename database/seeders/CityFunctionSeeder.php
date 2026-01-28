@@ -40,63 +40,86 @@ class CityFunctionSeeder extends Seeder
             [
                 'name' => 'Sociale Huur',
                 'category_id' => $wonen,
-                'image' => 'https://finance-ideas.nl/wp-content/uploads/2022/07/wanneer-is-een-woning-een-sociale-huurwoning.jpg',
+                'image' => 'uploads/sociale_huur.jpg',
                 'impacts' => [
-                    $housing->id => 20,  // Good for housing availability
-                    $safety->id => 5,    // Social cohesion
-                    $traffic->id => -5,  // Slight traffic increase
+                    ['id' => $housing->id, 'val' => 20, 'cond' => 'always'],
+                    ['id' => $safety->id, 'val' => 5, 'cond' => 'always'],
+                    ['id' => $traffic->id, 'val' => -5, 'cond' => 'always'],
+                    ['id' => $energy->id, 'val' => -10, 'cond' => 'night_only'], // High energy use at night
                 ]
             ],
             [
                 'name' => 'Luxe Flat',
                 'category_id' => $wonen,
-                'image' => 'https://www.bouwenmetnatuursteen.nl/wp-content/uploads/2024/03/NG-Bouwen-met-Natuursteen-Luxe-parkappartementen-1-Noordwijk-Constanta1.jpg',
+                'image' => 'uploads/luxe_flat.jpg',
                 'impacts' => [
-                    $housing->id => 40,  // High value
-                    $energy->id => 10,   // Modern insulation
-                    $traffic->id => -10, // More cars
+                    ['id' => $housing->id, 'val' => 40, 'cond' => 'always'],
+                    ['id' => $energy->id, 'val' => 10, 'cond' => 'always'], // Energy efficient
+                    ['id' => $traffic->id, 'val' => -10, 'cond' => 'always'],
                 ]
             ],
             [
                 'name' => 'Stadspark',
                 'category_id' => $groen,
-                'image' => 'https://assets.plaece.nl/thumb/Bid1aB6mtgfI8CjAizLbj5hKJ9JC59RqChfhHnMlYBg/resizing_type:fit/width:960/height:0/gravity:sm/enlarge:0/aHR0cHM6Ly9hc3NldHMucGxhZWNlLm5sL2t1bWEtZ3JvbmluZ2VuL3VwbG9hZHMvbWVkaWEvNjBlNWI3NjQwNzA1Yi8yNy1sYXJnZS5qcGc.jpg',
+                'image' => 'uploads/stadspark.jpg',
                 'impacts' => [
-                    $air->id => 30,      // Trees clean air
-                    $noise->id => 20,    // Absorbs noise (Positive score = Less noise)
-                    $housing->id => 15,  // Attractive to live near
-                    $safety->id => 10,   // Recreation
+                    ['id' => $air->id, 'val' => 30, 'cond' => 'always'],
+                    ['id' => $noise->id, 'val' => 20, 'cond' => 'always'],
+                    ['id' => $housing->id, 'val' => 15, 'cond' => 'always'],
+                    ['id' => $safety->id, 'val' => 10, 'cond' => 'day_only'],
                 ]
             ],
             [
                 'name' => 'Staal Fabriek',
                 'category_id' => $werken,
-                'image' => 'https://rogierbos.com/wp-content/uploads/2024/10/Industrieel-fotograaf-voor-staal-en-metaal-bij-Hoogovens-TataSteel-5.jpg',
+                'image' => 'uploads/staal_fabriek.jpg',
                 'impacts' => [
-                    $air->id => -50,     // Heavy pollution
-                    $noise->id => -40,   // Very loud
-                    $traffic->id => -20, // Heavy trucks
-                    $housing->id => -30, // Nobody wants to live here
+                    ['id' => $air->id, 'val' => -50, 'cond' => 'always'],
+                    ['id' => $noise->id, 'val' => -40, 'cond' => 'always'],
+                    ['id' => $traffic->id, 'val' => -20, 'cond' => 'always'],
+                    ['id' => $housing->id, 'val' => -30, 'cond' => 'always'],
                 ]
             ],
             [
                 'name' => 'Winkel',
                 'category_id' => $dienst,
-                'image' => 'https://www.mallatmillenia.com/wp-content/uploads/2025/07/071125_GUCCI_MILLENIA_24_151_v1_QC_R150_1999x1495_acf_cropped.jpg',
+                'image' => 'uploads/winkel.jpg',
                 'impacts' => [
-                    $housing->id => 10,  // Convenience
-                    $traffic->id => -15, // Shoppers cause traffic
-                    $safety->id => 5,    // Eyes on the street
+                    ['id' => $housing->id, 'val' => 10, 'cond' => 'always'],
+                    ['id' => $traffic->id, 'val' => -15, 'cond' => 'day_only'], 
+                    ['id' => $safety->id, 'val' => 5, 'cond' => 'day_only'],
+                    ['id' => $energy->id, 'val' => -10, 'cond' => 'day_only'], // Lights/AC during day
                 ]
             ],
             [
                 'name' => 'Politiebureau',
                 'category_id' => $veiligheid,
-                'image' => 'https://www.galjema.nl/wp-content/uploads/2024/03/Mitchell-van-Eijk_Politiebureau_Oost-Zeeburg-4-15klein.jpg',
+                'image' => 'uploads/politiebureau.jpg',
                 'impacts' => [
-                    $safety->id => 50,   // Huge safety boost
-                    $noise->id => -5,    // Sirens
-                    $housing->id => 5,
+                    ['id' => $safety->id, 'val' => 50, 'cond' => 'always'],
+                    ['id' => $noise->id, 'val' => -5, 'cond' => 'always'],
+                    ['id' => $housing->id, 'val' => 5, 'cond' => 'always'],
+                ]
+            ],
+            // NEW ITEMS
+            [
+                'name' => 'Zonnepaneel',
+                'category_id' => $groen, 
+                'image' => 'uploads/zonnepanelen.jpg',
+                'impacts' => [
+                    ['id' => $energy->id, 'val' => 30, 'cond' => 'day_only'], 
+                    ['id' => $housing->id, 'val' => 5, 'cond' => 'always'],
+                ]
+            ],
+            [
+                'name' => 'Bar / Cafe',
+                'category_id' => $dienst,
+                'image' => 'uploads/pub.jpg',
+                'impacts' => [
+                    ['id' => $noise->id, 'val' => -5, 'cond' => 'day_only'],
+                    ['id' => $noise->id, 'val' => -30, 'cond' => 'night_only'], 
+                    ['id' => $safety->id, 'val' => -5, 'cond' => 'night_only'], 
+                    ['id' => $housing->id, 'val' => -5, 'cond' => 'always'],
                 ]
             ]
         ];
@@ -111,13 +134,16 @@ class CityFunctionSeeder extends Seeder
             ]);
 
             // Create the Impacts
-            foreach ($data['impacts'] as $metricId => $score) {
-                if ($metricId) {
-                    FunctionImpact::create([
+            foreach ($data['impacts'] as $impactData) {
+                if ($impactData['id']) {
+                    $impact = new FunctionImpact();
+                    $impact->forceFill([
                         'city_function_id' => $function->id,
-                        'quality_metric_id' => $metricId,
-                        'impact' => $score
+                        'quality_metric_id' => $impactData['id'],
+                        'impact' => $impactData['val'],
+                        'condition' => $impactData['cond'] ?? 'always'
                     ]);
+                    $impact->save();
                 }
             }
         }

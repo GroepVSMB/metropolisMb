@@ -11,14 +11,16 @@ return new class extends Migration
         Schema::create('function_impacts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('city_function_id')->constrained()->onDelete('cascade');
-
-            // CHANGED: Now points to the new metrics table, not categories
             $table->foreignId('quality_metric_id')->constrained()->onDelete('cascade');
-
+            
             $table->integer('impact')->default(0);
+            // Add the condition column directly here
+            $table->string('condition')->default('always'); 
+            
             $table->timestamps();
 
-            $table->unique(['city_function_id', 'quality_metric_id'], 'func_metric_impact_unique');
+            // FIX: Include 'condition' in the unique key so you can have day/night impacts for the same metric
+            $table->unique(['city_function_id', 'quality_metric_id', 'condition'], 'func_metric_impact_unique');
         });
     }
 
